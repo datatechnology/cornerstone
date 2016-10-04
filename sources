@@ -1,0 +1,23 @@
+TARGETNAME=cornerstone
+INCLUDES=asio/asio/include
+UMTYPE=lib
+USE_MSVCRT=YES
+USE_UNICODE=NO
+DEBUG=YES
+cflags=$(cflags) /D_WIN32_WINNT=0x0501
+SOURCES=src\raft_server.cxx\
+	src\asio_service.cxx\
+	src\buffer.cxx\
+	src\cluster_config.cxx\
+	src\peer.cxx\
+	src\snapshot.cxx\
+	src\snapshot_sync_req.cxx\
+	src\srv_config.cxx
+
+asio: asio/asio/include/asio.hpp
+
+asio/asio/include/asio.hpp:
+	@git clone https://github.com/chriskohlhoff/asio.git
+
+tests:	asio
+	@cd tests && nmake -f Makefile.win all && debug\obj\testr.exe && cd ..

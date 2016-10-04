@@ -1,0 +1,190 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4F1A9E8E-8E81-42B4-8B4E-7984544641D0}</ProjectGuid>
+    <RootNamespace>cornerstone</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);asio\asio\include</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;libuv\Debug\lib</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\asio_service.hxx" />
+    <ClInclude Include="..\include\async.hxx" />
+    <ClInclude Include="..\include\basic_types.hxx" />
+    <ClInclude Include="..\include\buffer.hxx" />
+    <ClInclude Include="..\include\cluster_config.hxx" />
+    <ClInclude Include="..\include\context.hxx" />
+    <ClInclude Include="..\include\cornerstone.hxx" />
+    <ClInclude Include="..\include\delayed_task.hxx" />
+    <ClInclude Include="..\include\delayed_task_scheduler.hxx" />
+    <ClInclude Include="..\include\fs_log_store.hxx" />
+    <ClInclude Include="..\include\logger.hxx" />
+    <ClInclude Include="..\include\log_entry.hxx" />
+    <ClInclude Include="..\include\log_store.hxx" />
+    <ClInclude Include="..\include\log_val_type.hxx" />
+    <ClInclude Include="..\include\msg_base.hxx" />
+    <ClInclude Include="..\include\msg_type.hxx" />
+    <ClInclude Include="..\include\peer.hxx" />
+    <ClInclude Include="..\include\pp_util.hxx" />
+    <ClInclude Include="..\include\ptr.hxx" />
+    <ClInclude Include="..\include\raft_params.hxx" />
+    <ClInclude Include="..\include\raft_server.hxx" />
+    <ClInclude Include="..\include\req_msg.hxx" />
+    <ClInclude Include="..\include\resp_msg.hxx" />
+    <ClInclude Include="..\include\rpc_cli.hxx" />
+    <ClInclude Include="..\include\rpc_cli_factory.hxx" />
+    <ClInclude Include="..\include\rpc_exception.hxx" />
+    <ClInclude Include="..\include\rpc_listener.hxx" />
+    <ClInclude Include="..\include\snapshot.hxx" />
+    <ClInclude Include="..\include\snapshot_sync_ctx.hxx" />
+    <ClInclude Include="..\include\snapshot_sync_req.hxx" />
+    <ClInclude Include="..\include\srv_config.hxx" />
+    <ClInclude Include="..\include\srv_role.hxx" />
+    <ClInclude Include="..\include\srv_state.hxx" />
+    <ClInclude Include="..\include\state_machine.hxx" />
+    <ClInclude Include="..\include\state_mgr.hxx" />
+    <ClInclude Include="..\include\strfmt.hxx" />
+    <ClInclude Include="..\include\timer_task.hxx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\asio_service.cxx" />
+    <ClCompile Include="..\src\buffer.cxx" />
+    <ClCompile Include="..\src\cluster_config.cxx" />
+    <ClCompile Include="..\src\fs_log_store.cxx" />
+    <ClCompile Include="..\src\peer.cxx" />
+    <ClCompile Include="..\src\raft_server.cxx" />
+    <ClCompile Include="..\src\snapshot.cxx" />
+    <ClCompile Include="..\src\snapshot_sync_req.cxx" />
+    <ClCompile Include="..\src\srv_config.cxx" />
+    <ClCompile Include="..\tests\src\test_async_result.cxx" />
+    <ClCompile Include="..\tests\src\test_buffer.cxx" />
+    <ClCompile Include="..\tests\src\test_impls.cxx" />
+    <ClCompile Include="..\tests\src\test_logger.cxx" />
+    <ClCompile Include="..\tests\src\test_log_store.cxx" />
+    <ClCompile Include="..\tests\src\test_ptr.cxx" />
+    <ClCompile Include="..\tests\src\test_runner.cxx" />
+    <ClCompile Include="..\tests\src\test_scheduler.cxx" />
+    <ClCompile Include="..\tests\src\test_serialization.cxx" />
+    <ClCompile Include="..\tests\src\test_strfmt.cxx" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\sources" />
+    <None Include="..\tests\sources" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

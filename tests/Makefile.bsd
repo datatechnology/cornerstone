@@ -1,0 +1,20 @@
+CC=c++
+CFLAGS=-std=c++0x -O0 -Wall -I../asio/asio/include/ -g -DOS_FREEBSD
+LFLAGS=-lpthread
+.PATH.cxx	: ../src/ src/
+.PATH.o		: debug/
+OBJS=test_async_result.o test_strfmt.o test_runner.o buffer.o snapshot.o snapshot_sync_req.o srv_config.o cluster_config.o test_buffer.o test_serialization.o asio_service.o test_scheduler.o test_logger.o raft_server.o peer.o test_impls.o fs_log_store.o test_log_store.o test_ptr.o
+
+.SUFFIXES	: .o .cxx
+.cxx.o	:
+	$(CC) $(CFLAGS) -c $(.IMPSRC)
+testr	: $(OBJS)
+	$(CC) $(LFLAGS) -o $(.TARGET) $(.ALLSRC)
+	@-rm -rf debug
+	@-mkdir debug
+	@-mv *.o debug/
+	@-mv $(.TARGET) debug/
+
+clean	:
+	@-rm -rf debug
+
