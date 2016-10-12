@@ -206,7 +206,7 @@ void test_log_store_pack() {
 
     cleanup();
     cleanup("tmp");
-    mkdir("tmp", 0x766);
+    mkdir("tmp", 0766);
     fs_log_store store(".", 1000);
     fs_log_store store1("tmp", 1000);
     int logs_cnt = rnd() % 1000 + 1000;
