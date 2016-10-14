@@ -82,7 +82,7 @@ ptr<resp_msg> raft_server::process_req(req_msg& req) {
         resp = handle_extended_msg(req);
     }
 
-    if (!resp) {
+    if (resp) {
         l_.debug(
             lstrfmt("Response back a %s message to %d with Accepted=%d, Term=%llu, NextIndex=%llu")
             .fmt(
