@@ -1,6 +1,7 @@
 CC=g++
 CFLAGS+=-Wall -O0 -std=c++0x -g -Iasio/asio/include
 LFLAGS=-pthread
+VPATH=./src/
 
 %.o : %.cxx
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -8,8 +9,11 @@ OBJS=buffer.o asio_service.o cluster_config.o peer.o snapshot.o srv_config.o fs_
 asio/asio/include/asio.hpp:
 	@if [ ! -d "asio" ]; then git clone https://github.com/andy-yx-chen/asio.git ; fi;
 
-test:	asio/asio/include/asio.hpp
+testr:	asio/asio/include/asio.hpp
 	@cd tests && make -f Makefile.lx testr && ./debug/testr
+
+test:	asio/asio/include/asio.hpp
+	@cd tests && make -f Makefile.lx testr
 
 all:	$(OBJS)
 	@rm -rf debug
@@ -19,4 +23,7 @@ all:	$(OBJS)
 	@mkdir debug/include
 	@mkdir debug/obj
 	@mv *.o debug/obj/
-	@cp *.hxx debug/include/
+
+clean:
+	@-rm -rf debug
+	@cd tests && make -f Makefile.lx clean

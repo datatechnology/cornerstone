@@ -13,6 +13,7 @@ testr: $(OBJS)
 	@-rm -rf debug
 	@-mkdir debug
 	@-mv *.o debug/
+	@-mv ../src/fs_log_store.o debug/
 	@-mv $@ debug/
 
 clean:
