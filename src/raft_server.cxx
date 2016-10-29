@@ -129,8 +129,7 @@ ptr<resp_msg> raft_server::handle_append_entries(req_msg& req) {
         ulong idx = req.get_last_log_idx() + 1;
         size_t log_idx = 0;
         while (idx < log_store_->next_slot() && log_idx < req.log_entries().size()) {
-            ptr<log_entry> entry(log_store_->entry_at(idx));
-            if (entry->get_term() == req.log_entries().at(log_idx)->get_term()) {
+            if (log_store_->term_at(idx) == req.log_entries().at(log_idx)->get_term()) {
                 idx++;
                 log_idx++;
             }
