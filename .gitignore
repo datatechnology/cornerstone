@@ -5,3 +5,5 @@ Debug/
 *.user
 asio/
 nbproject/
+*.o
+*.obj
