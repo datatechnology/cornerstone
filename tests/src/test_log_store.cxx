@@ -53,7 +53,7 @@ int rmdir(const char* path) {
 #include <sys/types.h>
 #endif
 
-static void cleanup(const std::string& folder) {
+void cleanup(const std::string& folder) {
     std::remove((folder + LOG_INDEX_FILE).c_str());
     std::remove((folder + LOG_DATA_FILE).c_str());
     std::remove((folder + LOG_START_INDEX_FILE).c_str());
@@ -62,7 +62,7 @@ static void cleanup(const std::string& folder) {
     std::remove((folder + LOG_START_INDEX_FILE_BAK).c_str());
 }
 
-static void cleanup() {
+void cleanup() {
     cleanup(".");
 }
 

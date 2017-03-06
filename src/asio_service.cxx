@@ -143,6 +143,7 @@ namespace cornerstone {
 
                     if (data_size == 0) {
                         this->read_complete();
+                        return;
                     }
 
                     this->log_data_ = buffer::alloc((size_t)data_size);
@@ -205,7 +206,7 @@ namespace cornerstone {
                 }
 
                 ptr<resp_msg> resp = handler_->process_req(*req);
-                if (resp) {
+                if (!resp) {
                     l_.err("no response is returned from raft message handler, potential system bug");
                     this->stop();
                 }
@@ -264,6 +265,10 @@ namespace cornerstone {
 
     private:
         void start() {
+            if (!acceptor_.is_open()) {
+                return;
+            }
+
             ptr<asio_rpc_listener> self = cs_safe(this);
             session_closed_callback cb = std::bind(&asio_rpc_listener::remove_session, self, std::placeholders::_1);
             ptr<rpc_session> session(cs_new<rpc_session, asio::io_service&, ptr<msg_handler>&, logger&, session_closed_callback&>(io_svc_, handler_, l_, cb));
@@ -302,23 +307,30 @@ namespace cornerstone {
     class asio_rpc_client : public rpc_client {
     private:
         asio_rpc_client(asio::io_service& io_svc, std::string& host, std::string& port)
-            : io_svc_(io_svc), socket_(io_svc), host_(host), port_(port){}
+            : io_svc_(io_svc), resolver_(io_svc), socket_(io_svc), host_(host), port_(port){}
+    public:
+        virtual ~asio_rpc_client() {
+            if (socket_.is_open()) {
+                socket_.close();
+            }
+        }
+
     public:
         virtual void send(ptr<req_msg>& req, rpc_handler& when_done) __override__ {
             ptr<asio_rpc_client> self(cs_safe(this));
             if (!socket_.is_open()) {
-                asio::ip::tcp::resolver r(io_svc_);
-                r.async_resolve(host_, port_, [self, this, &req, &when_done](std::error_code err, asio::ip::tcp::resolver::iterator itor) -> void {
+                asio::ip::tcp::resolver::query q(host_, port_, asio::ip::tcp::resolver::query::all_matching);
+                resolver_.async_resolve(q, [self, this, req, when_done](std::error_code err, asio::ip::tcp::resolver::iterator itor) -> void {
                     if (!err) {
                         asio::async_connect(socket_, itor, std::bind(&asio_rpc_client::connected, self, req, when_done, std::placeholders::_1, std::placeholders::_2));
                     }
                     else {
                         ptr<resp_msg> rsp;
-                        ptr<rpc_exception> except(cs_new<rpc_exception>(lstrfmt("failed to resolve host %s").fmt(host_.c_str()), req));
+                        ptr<rpc_exception> except(cs_new<rpc_exception>(lstrfmt("failed to resolve host %s due to error %d").fmt(host_.c_str(), err.value()), req));
                         when_done(rsp, except);
                     }
                 });
-            }else{
+            } else {
                 // serialize req, send and read response
                 std::vector<ptr<buffer>> log_entry_bufs;
                 int32 log_data_size(0);
@@ -363,7 +375,7 @@ namespace cornerstone {
             }
             else {
                 ptr<resp_msg> rsp;
-                ptr<rpc_exception> except(cs_new<rpc_exception>("failed to connect to remote socket", req));
+                ptr<rpc_exception> except(cs_new<rpc_exception>(sstrfmt("failed to connect to remote socket %d").fmt(err.value()), req));
                 when_done(rsp, except);
             }
         }
@@ -377,7 +389,7 @@ namespace cornerstone {
             }
             else {
                 ptr<resp_msg> rsp;
-                ptr<rpc_exception> except(cs_new<rpc_exception>("failed to send request to remote socket", req));
+                ptr<rpc_exception> except(cs_new<rpc_exception>(sstrfmt("failed to send request to remote socket %d").fmt(err.value()), req));
                 socket_.close();
                 when_done(rsp, except);
             }
@@ -397,7 +409,7 @@ namespace cornerstone {
             }
             else {
                 ptr<resp_msg> rsp;
-                ptr<rpc_exception> except(cs_new<rpc_exception>("failed to read response to remote socket", req));
+                ptr<rpc_exception> except(cs_new<rpc_exception>(sstrfmt("failed to read response to remote socket %d").fmt(err.value()), req));
                 socket_.close();
                 when_done(rsp, except);
             }
@@ -405,6 +417,7 @@ namespace cornerstone {
 
     private:
         asio::io_service& io_svc_;
+        asio::ip::tcp::resolver resolver_;
         asio::ip::tcp::socket socket_;
         std::string host_;
         std::string port_;
@@ -570,7 +583,7 @@ void asio_service::stop() {
 ptr<rpc_client> asio_service::create_client(const std::string& endpoint) {
     // the endpoint is expecting to be protocol://host:port, and we only support tcp for this factory
     // which is endpoint must be tcp://hostname:port
-    static std::regex reg("^tcp://(([a-zA-Z0-9\\-]+\\.)+([a-zA-Z0-9]+)):([0-9]+)$");
+    static std::regex reg("^tcp://(([a-zA-Z0-9-]+\\.)*([a-zA-Z0-9]+)):([0-9]+)$");
     std::smatch mresults;
     if (!std::regex_match(endpoint, mresults, reg) || mresults.size() != 5) {
         return ptr<rpc_client>();

@@ -7,3 +7,5 @@ asio/
 nbproject/
 *.obj
 *.o
+**/*.opendb
+**/*.db

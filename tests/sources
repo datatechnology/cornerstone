@@ -24,4 +24,5 @@ SOURCES=\
 	src\test_impls.cxx\
 	src\test_log_store.cxx\
 	..\src\fs_log_store.cxx\
-	src\test_ptr.cxx
+	src\test_ptr.cxx\
+	src\test_everything_together.cxx
