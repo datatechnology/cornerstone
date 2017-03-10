@@ -43,9 +43,9 @@ namespace cornerstone {
         virtual void schedule(ptr<delayed_task>& task, int32 milliseconds) __override__;
         virtual ptr<rpc_client> create_client(const std::string& endpoint) __override__;
 
-        logger* create_logger(log_level level, const std::string& log_file);
+        ptr<logger> create_logger(log_level level, const std::string& log_file);
 
-        ptr<rpc_listener> create_rpc_listener(ushort listening_port, logger& l);
+        ptr<rpc_listener> create_rpc_listener(ushort listening_port, ptr<logger>& l);
 
         void stop();
 

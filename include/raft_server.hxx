@@ -23,7 +23,7 @@ namespace cornerstone {
     public:
         raft_server(context* ctx)
         : leader_(-1),
-            id_(ctx->state_mgr_.server_id()),
+            id_(ctx->state_mgr_->server_id()),
             votes_responded_(0),
             votes_granted_(0),
             quick_commit_idx_(0),
@@ -40,11 +40,11 @@ namespace cornerstone {
             peers_(),
             rpc_clients_(),
             role_(srv_role::follower),
-            state_(ctx->state_mgr_.read_state()),
-            log_store_(ctx->state_mgr_.load_log_store()),
+            state_(ctx->state_mgr_->read_state()),
+            log_store_(ctx->state_mgr_->load_log_store()),
             state_machine_(ctx->state_machine_),
             l_(ctx->logger_),
-            config_(ctx->state_mgr_.load_config()),
+            config_(ctx->state_mgr_->load_config()),
             srv_to_join_(),
             conf_to_add_(),
             lock_(),
@@ -85,7 +85,7 @@ namespace cornerstone {
             for (ulong i = std::max(state_->get_commit_idx() + 1, log_store_->start_index()); i < log_store_->next_slot(); ++i) {
                 ptr<log_entry> entry(log_store_->entry_at(i));
                 if (entry->get_val_type() == log_val_type::conf) {
-                    l_.info(sstrfmt("detect a configuration change that is not committed yet at index %llu").fmt(i));
+                    l_->info(sstrfmt("detect a configuration change that is not committed yet at index %llu").fmt(i));
                     config_changing_ = true;
                     break;
                 }
@@ -95,7 +95,7 @@ namespace cornerstone {
             for (cluster_config::srv_itor it = srvs.begin(); it != srvs.end(); ++it) {
                 if ((*it)->get_id() != id_) {
          	        timer_task<peer&>::executor exec = (timer_task<peer&>::executor)std::bind(&raft_server::handle_hb_timeout, this, std::placeholders::_1);
-                    peers_.insert(std::make_pair((*it)->get_id(), cs_new<peer, srv_config&, context&, timer_task<peer&>::executor&>(**it, *ctx_, exec)));
+                    peers_.insert(std::make_pair((*it)->get_id(), cs_new<peer, ptr<srv_config>&, context&, timer_task<peer&>::executor&>(*it, *ctx_, exec)));
                 }
             }
 
@@ -103,7 +103,7 @@ namespace cornerstone {
             std::thread commiting_thread = std::thread(std::bind(&raft_server::commit_in_bg, this));
             commiting_thread.detach();
             restart_election_timer();
-            l_.debug(strfmt<30>("server %d started").fmt(id_));
+            l_->debug(strfmt<30>("server %d started").fmt(id_));
         }
 
         virtual ~raft_server() {
@@ -116,12 +116,12 @@ namespace cornerstone {
             commit_lock.release();
             ready_to_stop_cv_.wait(lock);
             if (election_task_) {
-                scheduler_.cancel(election_task_);
+                scheduler_->cancel(election_task_);
             }
 
             for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
                 if (it->second->get_hb_task()) {
-                    scheduler_.cancel(it->second->get_hb_task());
+                    scheduler_->cancel(it->second->get_hb_task());
                 }
             }
         }
@@ -197,7 +197,7 @@ namespace cornerstone {
         int32 steps_to_down_;
         std::atomic_bool snp_in_progress_;
         std::unique_ptr<context> ctx_;
-        delayed_task_scheduler& scheduler_;
+        ptr<delayed_task_scheduler> scheduler_;
         timer_task<void>::executor election_exec_;
         ptr<delayed_task> election_task_;
         std::unordered_map<int32, ptr<peer>> peers_;
@@ -205,8 +205,8 @@ namespace cornerstone {
         srv_role role_;
         ptr<srv_state> state_;
         ptr<log_store> log_store_;
-        state_machine& state_machine_;
-        logger& l_;
+        ptr<state_machine> state_machine_;
+        ptr<logger> l_;
         std::function<int32()> rand_timeout_;
         ptr<cluster_config> config_;
         ptr<peer> srv_to_join_;

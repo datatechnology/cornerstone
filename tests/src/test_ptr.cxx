@@ -60,8 +60,8 @@ public:
     }
 };
 
-class PtrSafe {
-private:
+class PtrSafe : public std::enable_shared_from_this<PtrSafe> {
+public:
     PtrSafe() {}
 
 public:
@@ -70,11 +70,8 @@ public:
     }
 
     ptr<PtrSafe> get_this() {
-        return cs_safe(this);
+        return shared_from_this();
     }
-
-public:
-    friend ptr<PtrSafe> cornerstone::cs_new<PtrSafe>();
 };
 
 class Circular2;
@@ -102,7 +99,7 @@ public:
     }
 
 private:
-    ptr<Circular1&> c1_;
+    wptr<Circular1> c1_;
 };
 
 class Base1 {
@@ -136,7 +133,7 @@ public:
 
 void test_ptr() {
     {
-        ptr<Circular1&> c1ref;
+        wptr<Circular1> c1ref;
         {
             ptr<Base> b(cs_new<Base>(1));
             ptr<Base> b1(cs_new<Derived>(1));
@@ -151,15 +148,15 @@ void test_ptr() {
             ptr<Circular2> c2(cs_new<Circular2>(c1));
             c1->set_c2(c2);
             c1ref = c1;
-            ptr<Circular1> pc1 = &c1ref;
-            assert(pc1 == true);
+            ptr<Circular1> pc1 = c1ref.lock();
+            assert(pc1);
 
             ptr<PtrSafe> ps(cs_new<PtrSafe>());
-            ps = ps->get_this();
-            ps = ps->get_this();
+            ps = ps.get()->get_this();
+            ps = ps.get()->get_this();
         }
 
-        assert(c1ref == false);
+        assert(c1ref.expired());
     }
 
     assert(__ptr_test_base_calls == 1);
@@ -174,8 +171,8 @@ void test_ptr() {
     assert(1 == impl->func1());
     cornerstone::ptr<Base2> b2(impl);
     assert(3 == b2->func3());
-    ptr<Base2&> b2ref = impl;
-    assert(true == b2ref);
-    b2 = &b2ref;
+    wptr<Base2> b2ref = impl;
+    assert(!b2ref.expired());
+    b2 = b2ref.lock();
     assert(3 == b2->func3());
 }

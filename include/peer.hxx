@@ -21,10 +21,10 @@
 namespace cornerstone {
     class peer {
     public:
-        peer(const srv_config& config, const context& ctx, timer_task<peer&>::executor& hb_exec)
+        peer(ptr<srv_config>& config, const context& ctx, timer_task<peer&>::executor& hb_exec)
             : config_(config),
             scheduler_(ctx.scheduler_),
-            rpc_(ctx.rpc_cli_factory_.create_client(config.get_endpoint())),
+            rpc_(ctx.rpc_cli_factory_->create_client(config->get_endpoint())),
             current_hb_interval_(ctx.params_->heart_beat_interval_),
             hb_interval_(ctx.params_->heart_beat_interval_),
             rpc_backoff_(ctx.params_->rpc_failure_backoff_),
@@ -43,11 +43,11 @@ namespace cornerstone {
     
     public:
         int32 get_id() const {
-            return config_.get_id();
+            return config_->get_id();
         }
 
         const srv_config& get_config() {
-            return config_;
+            return *config_;
         }
 
         ptr<delayed_task>& get_hb_task() {
@@ -78,7 +78,7 @@ namespace cornerstone {
         void enable_hb(bool enable) {
             hb_enabled_ = enable;
             if (!enable) {
-                scheduler_.cancel(hb_task_);
+                scheduler_->cancel(hb_task_);
             }
         }
 
@@ -132,8 +132,8 @@ namespace cornerstone {
     private:
         void handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result, ptr<resp_msg>& resp, ptr<rpc_exception>& err);
     private:
-        const srv_config& config_;
-        delayed_task_scheduler& scheduler_;
+        ptr<srv_config> config_;
+        ptr<delayed_task_scheduler> scheduler_;
         ptr<rpc_client> rpc_;
         int32 current_hb_interval_;
         int32 hb_interval_;

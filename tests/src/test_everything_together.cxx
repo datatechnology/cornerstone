@@ -171,17 +171,19 @@ void test_raft_server_with_asio() {
 }
 
 void run_raft_instance_with_asio(int srv_id) {
-    std::unique_ptr<logger> l(asio_svc_->create_logger(asio_service::log_level::debug, sstrfmt("log%d.log").fmt(srv_id)));
-    ptr<rpc_listener> listener(asio_svc_->create_rpc_listener((ushort)(9000 + srv_id), *l));
-    simple_state_mgr smgr(srv_id);
-    echo_state_machine smachine;
+    ptr<logger> l(asio_svc_->create_logger(asio_service::log_level::debug, sstrfmt("log%d.log").fmt(srv_id)));
+    ptr<rpc_listener> listener(asio_svc_->create_rpc_listener((ushort)(9000 + srv_id), l));
+    ptr<state_mgr> smgr(cs_new<simple_state_mgr>(srv_id));
+    ptr<state_machine> smachine(cs_new<echo_state_machine>());
     raft_params* params(new raft_params());
     (*params).with_election_timeout_lower(200)
         .with_election_timeout_upper(400)
         .with_hb_interval(100)
         .with_max_append_size(100)
         .with_rpc_failure_backoff(50);
-    context* ctx(new context(smgr, smachine, *listener, *l, *asio_svc_, *asio_svc_, params));
+    ptr<delayed_task_scheduler> scheduler = asio_svc_;
+    ptr<rpc_client_factory> rpc_cli_factory = asio_svc_;
+    context* ctx(new context(smgr, smachine, listener, l, rpc_cli_factory, scheduler, params));
     ptr<raft_server> server(cs_new<raft_server>(ctx));
     listener->listen(server);
 

@@ -23,18 +23,19 @@
 using namespace cornerstone;
 
 void test_logger() {
-    asio_service svc;
     std::string text[4];
     text[0] = "line1";
     text[1] = "line2";
     text[2] = "line3";
     text[3] = "line4";
     {
-        std::unique_ptr<logger> l(svc.create_logger(asio_service::log_level::debug, "log1.log"));
+        asio_service svc;
+        ptr<logger> l(svc.create_logger(asio_service::log_level::debug, "log1.log"));
         l->debug(text[0]);
         l->info(text[1]);
         l->warn(text[2]);
         l->err(text[3]);
+        svc.stop();
     }
 
     std::ifstream log1("log1.log");
@@ -47,11 +48,13 @@ void test_logger() {
 
     log1.close();
     {
-        std::unique_ptr<logger> l(svc.create_logger(asio_service::log_level::warnning, "log2.log"));
+        asio_service svc;
+        ptr<logger> l(svc.create_logger(asio_service::log_level::warnning, "log2.log"));
         l->debug(text[0]);
         l->info(text[1]);
         l->warn(text[2]);
         l->err(text[3]);
+        svc.stop();
     }
 
     std::ifstream log2("log2.log");
@@ -66,6 +69,4 @@ void test_logger() {
 
     std::remove("log1.log");
     std::remove("log2.log");
-    svc.stop();
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
