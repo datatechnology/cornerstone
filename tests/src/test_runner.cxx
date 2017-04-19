@@ -43,7 +43,7 @@ __decl_test__(log_store_compact_random);
 __decl_test__(raft_server_with_asio);
 
 int main(int argc, char* argv[]) {
-    char* test = "*";
+    const char* test = "*";
     if (argc == 2) {
         test = argv[1];
     }

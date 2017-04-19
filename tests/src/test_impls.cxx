@@ -197,7 +197,7 @@ private:
 class dummy_state_machine : public state_machine {
 public:
     virtual void commit(const ulong log_idx, buffer& data) {
-        std::cout << "commit message:" << data.get_str() << std::endl;
+        std::cout << "commit message:" << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
     virtual void pre_commit(const ulong log_idx, buffer& data) {}

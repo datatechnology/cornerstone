@@ -6,7 +6,7 @@ VPATH=../src/:./src/
 %.o : %.cxx
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-OBJS=test_async_result.o test_strfmt.o test_runner.o buffer.o snapshot.o snapshot_sync_req.o srv_config.o cluster_config.o test_buffer.o test_serialization.o raft_server.o peer.o test_impls.o asio_service.o test_logger.o test_scheduler.o ../src/fs_log_store.o test_log_store.o test_ptr.o
+OBJS=test_async_result.o test_strfmt.o test_runner.o buffer.o snapshot.o snapshot_sync_req.o srv_config.o cluster_config.o test_buffer.o test_serialization.o raft_server.o peer.o test_impls.o asio_service.o test_logger.o test_scheduler.o ../src/fs_log_store.o test_log_store.o test_ptr.o test_everything_together.o
 
 testr: $(OBJS)
 	$(CC) -o $@ $^ -Wl,--no-as-needed $(LFLAGS)

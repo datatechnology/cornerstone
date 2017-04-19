@@ -26,6 +26,17 @@ extern void cleanup(const std::string& folder);
 #ifdef _WIN32
 extern int mkdir(const char* path, int mode);
 extern int rmdir(const char* path);
+#else
+#define LOG_INDEX_FILE "/store.idx"
+#define LOG_DATA_FILE "/store.dat"
+#define LOG_START_INDEX_FILE "/store.sti"
+#define LOG_INDEX_FILE_BAK "/store.idx.bak"
+#define LOG_DATA_FILE_BAK "/store.dat.bak"
+#define LOG_START_INDEX_FILE_BAK "/store.sti.bak"
+
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #endif
 
 ptr<asio_service> asio_svc_;
@@ -74,18 +85,49 @@ private:
     std::string store_path_;
 };
 
+class console_logger : public logger {
+public:
+    console_logger(const std::string& name) : name_(name) {}
+
+    __nocopy__(console_logger)
+public:
+    virtual void debug(const std::string& log_line) {
+        printf("%s %s %s\n", "DEBUG", this->name_.c_str(), log_line.c_str());
+    }
+
+    virtual void info(const std::string& log_line) {
+        printf("%s %s %s\n", "INFO", this->name_.c_str(), log_line.c_str());
+    }
+
+    virtual void warn(const std::string& log_line) {
+        printf("%s %s %s\n", "WARN", this->name_.c_str(), log_line.c_str());
+    }
+
+    virtual void err(const std::string& log_line) {
+        printf("%s %s %s\n", "ERROR", this->name_.c_str(), log_line.c_str());
+    }
+
+private:
+    std::string name_;
+};
+
 class echo_state_machine : public state_machine {
 public:
+    echo_state_machine() : lock_() {}
+public:
     virtual void commit(const ulong log_idx, buffer& data) {
-        std::cout << "commit message:" << data.get_str() << std::endl;
+        auto_lock(lock_);
+        std::cout << "commit message:" << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
     virtual void pre_commit(const ulong log_idx, buffer& data) {
-        std::cout << "pre-commit: " << data.get_str() << std::endl;
+        auto_lock(lock_);
+        std::cout << "pre-commit: " << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
     virtual void rollback(const ulong log_idx, buffer& data) {
-        std::cout << "rollback: " << data.get_str() << std::endl;
+        auto_lock(lock_);
+        std::cout << "rollback: " << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
     virtual void save_snapshot_data(snapshot& s, const ulong offset, buffer& data) {}
@@ -102,6 +144,8 @@ public:
     }
 
     virtual void create_snapshot(snapshot& s, async_result<bool>::handler_type& when_done) {}
+private:
+    std::mutex lock_;
 };
 
 void run_raft_instance_with_asio(int srv_id);

@@ -150,13 +150,6 @@ all:$(_TARGETNAME)
 
 $(_TARGETNAME):$(OBJS)
     $(link) $(LINKFLAGS) /out:"$(_TARGETNAME)" $(USE_LIBS) $**
-    @for %i in ($(SOURCES)) do (move /Y %~dpni.obj "$(TARGETPATH)\%~ni.obj")
-    @-copy /Y *.pdb "$(TARGETPATH)\"
-    @-del /Q *.pdb
-    @-copy /Y *.ilk "$(TARGETPATH)\"
-    @-del /Q *.ilk
-    @copy /Y $(_TARGETNAME) "$(TARGETPATH)\$(_TARGETNAME)"
-    @del /Q $(_TARGETNAME)
 .c.obj:
     $(cc) /c $(cflags) /Fo$@ $<
 
@@ -170,4 +163,7 @@ clean:
     @rd /s /q "$(BIN_DIR)"
     @del *.obj
     @del *.pdb
+	@del *.ilk
+	@del *.lib
+	@del *.exe
     @echo successfully clean up!

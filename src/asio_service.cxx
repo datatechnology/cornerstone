@@ -218,6 +218,7 @@ namespace cornerstone {
                     resp_buf->pos(0);
                     asio::async_write(socket_, asio::buffer(resp_buf->data(), RPC_RESP_HEADER_SIZE), [this, self](asio::error_code err_code, size_t) -> void {
                         if (!err_code) {
+                            this->header_->pos(0);
                             this->start();
                         }
                         else {
@@ -301,7 +302,7 @@ namespace cornerstone {
     class asio_rpc_client : public rpc_client, public std::enable_shared_from_this<asio_rpc_client> {
     public:
         asio_rpc_client(asio::io_service& io_svc, std::string& host, std::string& port)
-            : io_svc_(io_svc), resolver_(io_svc), socket_(io_svc), host_(host), port_(port){}
+            : io_svc_(io_svc), resolver_(io_svc), socket_(io_svc), host_(host), port_(port) {}
         virtual ~asio_rpc_client() {
             if (socket_.is_open()) {
                 socket_.close();
@@ -357,7 +358,6 @@ namespace cornerstone {
                 }
 
                 req_buf->pos(0);
-
                 asio::async_write(socket_, asio::buffer(req_buf->data(), req_buf->size()), std::bind(&asio_rpc_client::sent, self, req, when_done, std::placeholders::_1, std::placeholders::_2));
             }
         }
@@ -563,7 +563,7 @@ void asio_service::stop() {
 ptr<rpc_client> asio_service::create_client(const std::string& endpoint) {
     // the endpoint is expecting to be protocol://host:port, and we only support tcp for this factory
     // which is endpoint must be tcp://hostname:port
-    static std::regex reg("^tcp://(([a-zA-Z0-9-]+\\.)*([a-zA-Z0-9]+)):([0-9]+)$");
+    static std::regex reg("^tcp://(([a-zA-Z0-9\\-]+\\.)*([a-zA-Z0-9]+)):([0-9]+)$");
     std::smatch mresults;
     if (!std::regex_match(endpoint, mresults, reg) || mresults.size() != 5) {
         return ptr<rpc_client>();
