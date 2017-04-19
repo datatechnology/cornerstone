@@ -197,7 +197,7 @@ private:
 class dummy_state_machine : public state_machine {
 public:
     virtual void commit(const ulong log_idx, buffer& data) {
-        std::cout << "commit message:" << data.get_str() << std::endl;
+        std::cout << "commit message:" << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
     virtual void pre_commit(const ulong log_idx, buffer& data) {}
@@ -388,10 +388,10 @@ private:
 };
 
 msg_bus bus;
-test_rpc_cli_factory rpc_factory(bus);
+ptr<rpc_client_factory> rpc_factory(cs_new<test_rpc_cli_factory, msg_bus&>(bus));
 std::condition_variable stop_cv;
 std::mutex lock;
-asio_service asio_svc;
+ptr<asio_service> asio_svc(cs_new<asio_service>());
 std::mutex stop_test_lock;
 std::condition_variable stop_test_cv;
 
@@ -405,7 +405,7 @@ void test_raft_server() {
     t3.detach();
     std::cout << "waiting for leader election..." << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    ptr<rpc_client> client(rpc_factory.create_client("port1"));
+    ptr<rpc_client> client(rpc_factory->create_client("port1"));
     ptr<req_msg> msg = cs_new<req_msg>(0, msg_type::client_request, 0, 1, 0, 0, 0);
     ptr<buffer> buf = buffer::alloc(100);
     buf->put("hello");
@@ -414,7 +414,7 @@ void test_raft_server() {
     rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp, ptr<rpc_exception>& err) -> void {
         assert(rsp->get_accepted() || rsp->get_dst() > 0);
         if (!rsp->get_accepted()) {
-            client = rpc_factory.create_client(sstrfmt("port%d").fmt(rsp->get_dst()));
+            client = rpc_factory->create_client(sstrfmt("port%d").fmt(rsp->get_dst()));
             ptr<req_msg> msg = cs_new<req_msg>(0, msg_type::client_request, 0, 1, 0, 0, 0);
             ptr<buffer> buf = buffer::alloc(100);
             buf->put("hello");
@@ -442,7 +442,7 @@ void test_raft_server() {
 
     stop_cv.notify_all();
     std::this_thread::sleep_for(std::chrono::milliseconds(400));
-    asio_svc.stop();
+    asio_svc->stop();
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     std::remove("log1.log");
     std::remove("log2.log");
@@ -450,19 +450,20 @@ void test_raft_server() {
 }
 
 void run_raft_instance(int srv_id) {
-    test_rpc_listener listener(sstrfmt("port%d").fmt(srv_id), bus);
-    in_memory_state_mgr smgr(srv_id);
-    dummy_state_machine smachine;
-    std::unique_ptr<logger> l(asio_svc.create_logger(asio_service::log_level::debug, sstrfmt("log%d.log").fmt(srv_id)));
+    ptr<rpc_listener> listener(cs_new<test_rpc_listener, const std::string&, msg_bus&>(sstrfmt("port%d").fmt(srv_id), bus));
+    ptr<state_mgr> smgr(cs_new<in_memory_state_mgr>(srv_id));
+    ptr<state_machine> smachine(cs_new<dummy_state_machine>());
+    ptr<logger> l(asio_svc->create_logger(asio_service::log_level::debug, sstrfmt("log%d.log").fmt(srv_id)));
     raft_params* params(new raft_params());
     (*params).with_election_timeout_lower(200)
         .with_election_timeout_upper(400)
         .with_hb_interval(100)
         .with_max_append_size(100)
         .with_rpc_failure_backoff(50);
-    context* ctx(new context(smgr, smachine, listener, *l, rpc_factory, asio_svc, params));
+    ptr<delayed_task_scheduler> scheduler = asio_svc;
+    context* ctx(new context(smgr, smachine, listener, l, rpc_factory, scheduler, params));
     ptr<raft_server> server(cs_new<raft_server>(ctx));
-    listener.listen(server);
+    listener->listen(server);
 
     // some example code for how to append log entries to raft_server
     /*std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -477,6 +478,6 @@ void run_raft_instance(int srv_id) {
     {
         std::unique_lock<std::mutex> ulock(lock);
         stop_cv.wait(ulock);
-        listener.stop();
+        listener->stop();
     }
 }

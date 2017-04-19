@@ -188,6 +188,9 @@
     <ClCompile Include="..\tests\src\test_async_result.cxx">
       <Filter>Source Files\tests</Filter>
     </ClCompile>
+    <ClCompile Include="..\tests\src\test_everything_together.cxx">
+      <Filter>Source Files\tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\sources" />

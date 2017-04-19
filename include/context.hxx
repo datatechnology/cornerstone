@@ -21,17 +21,30 @@
 namespace cornerstone {
     struct context {
     public:
-        context(state_mgr& mgr, state_machine& m, rpc_listener& listener, logger& l, rpc_client_factory& cli_factory, delayed_task_scheduler& scheduler, raft_params* params = nilptr)
-            : state_mgr_(mgr), state_machine_(m), rpc_listener_(listener), logger_(l), rpc_cli_factory_(cli_factory), scheduler_(scheduler), params_(params == nilptr ? new raft_params : params) {}
+        context(
+            ptr<state_mgr>& mgr,
+            ptr<state_machine>& m, 
+            ptr<rpc_listener>& listener, 
+            ptr<logger>& l, 
+            ptr<rpc_client_factory>& cli_factory, 
+            ptr<delayed_task_scheduler>& scheduler,
+            raft_params* params = nilptr)
+            : state_mgr_(mgr), 
+              state_machine_(m),
+              rpc_listener_(listener), 
+              logger_(l), 
+              rpc_cli_factory_(cli_factory), 
+              scheduler_(scheduler), 
+              params_(params == nilptr ? new raft_params : params) {}
 
     __nocopy__(context)
     public:
-        state_mgr& state_mgr_;
-        state_machine& state_machine_;
-        rpc_listener& rpc_listener_;
-        logger& logger_;
-        rpc_client_factory& rpc_cli_factory_;
-        delayed_task_scheduler& scheduler_;
+        ptr<state_mgr> state_mgr_;
+        ptr<state_machine> state_machine_;
+        ptr<rpc_listener> rpc_listener_;
+        ptr<logger> logger_;
+        ptr<rpc_client_factory> rpc_cli_factory_;
+        ptr<delayed_task_scheduler> scheduler_;
         std::unique_ptr<raft_params> params_;
     };
 }

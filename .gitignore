@@ -7,3 +7,9 @@ asio/
 nbproject/
 *.obj
 *.o
+**/*.opendb
+**/*.db
+*.pdb
+*.exe
+*.ilk
+*.lib

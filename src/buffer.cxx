@@ -42,19 +42,23 @@
 #define __data_of_block(p) (__is_big_block(p)) ? (byte*) (((byte*)(((uint*)(p)) + 2)) + __pos_of_b_block(p)) : (byte*) (((byte*)(((ushort*)p) + 2)) + __pos_of_s_block(p))
 using namespace cornerstone;
 
+static void free_buffer(buffer* buf) {
+    delete[] reinterpret_cast<char*>(buf);
+}
+
 ptr<buffer> buffer::alloc(const size_t size) {
     if (size >= 0x80000000) {
         throw std::out_of_range("size exceed the max size that cornrestone::buffer could support");
     }
 
     if (size >= 0x8000) {
-        ptr<buffer> buf = cs_alloc<buffer>(size + sizeof(uint) * 2);
+        ptr<buffer> buf(reinterpret_cast<buffer*>(new char[size + sizeof(uint) * 2]), &free_buffer);
         any_ptr ptr = reinterpret_cast<any_ptr>(buf.get());
         __init_b_block(ptr, size);
         return buf;
     }
 
-    ptr<buffer> buf = cs_alloc<buffer>(size + sizeof(ushort) * 2);
+    ptr<buffer> buf(reinterpret_cast<buffer*>(new char[size + sizeof(ushort) * 2]), &free_buffer);
     any_ptr ptr = reinterpret_cast<any_ptr>(buf.get());
     __init_s_block(ptr, size);
     return buf;
