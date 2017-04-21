@@ -1,7 +1,9 @@
 # cornerstone
-A Raft Consensus C++ implementation, the original implementation was published by [Andy Chen] (https://github.com/andy-yx-chen), as he agrees,  we re-organize his source code, and republish under the same license.
+A very lightweight but complete Raft Consensus C++ implementation, the original implementation was published by [Andy Chen] (https://github.com/andy-yx-chen), as he agrees,  we re-organize his source code, and republish under the same license.
 
 To respect Andy Chen's work, we keep using **cornerstone** as the project's name and we will start iterating based on his work.
+
+**We throw away ptr\<T\>, now resources are managed by shared_ptr!**
 
 ## Features
 - [x] Core algorithm, implemented based on TLA+ spec (though the spec does not have timer module)
@@ -15,18 +17,26 @@ To respect Andy Chen's work, we keep using **cornerstone** as the project's name
 The key advantage or could be disadvantage for this implementation is it does not have any additional code that is unrelated to raft consensus itself. Which means, it does not have state machine, which could be a storange service.
 It also has very few dependencies, actually, only the STL and asio. It chooese asio is because asio supports both timer framework and async socket framework, which could be run on Windows, Linux and BSD systems.
 The project only contains the following stuff,
-- 1. core algorithm, raft_server.cxx
-- 2. fstream based log storage
-- 3. asio based timer implementation
-- 4. asio based rpc server and client (through tcp)
-- 5. buffered logger implementation
+ 1. core algorithm, raft_server.cxx
+ 2. fstream based log storage
+ 3. asio based timer implementation
+ 4. asio based rpc server and client (through tcp)
+ 5. buffered logger implementation
+
+### Why these are sufficient?
+1. Core is core, it's all about Raft itself, developers could just copy the headers and this file to make Raft work.
+2. For log storage, fstream based is sufficient, even for production code, why?
+    1. This storage is a sequential storage, which means it may fallback to some position, but it does not do random seeking
+    2. It's sequential accessing, no index is required, means, no special file format is required
+3. Asio is sufficient, you may think about having messge queues for incoming and outgoing requests, but that's unnecessary, as long as you are using async io, no matter it's IOCP, kqueue or epoll, there is already a queue behind the scene, asio would be good enough as a production based code.
 
 You are not able to get an exe file to do something meaningful by building the project, actually, you will get archive file instead (or lib file on Windows), however, you can build the test project and see how to use it and how it would work
 
-You most likely should start with test_impls.cxx, under test/src folder, as that contains a use case of 
+You most likely should start with test_everything_together.cxx, under test/src folder, as that contains a use case of 
 - what need to be implemented to leverage the core algorithm
 - how to use the core algorithm
 - how to send logs to cluster 
+- ext: how to use asio_service
 
 ## Build and run
 
@@ -59,12 +69,6 @@ The following command will build the test project and run all tests
 
 The following command will build the lib file,
 > make -f Makefile.bsd all
-
-## A popular question
-
-Why ptr\<T\>?
-
-Actually, it's the same as shared\_ptr with make\_shared, however, it's syntax is simpler, such as concepts of ptr\<T\> and ptr\<T&\> instead of shared\_ptr and weak\_ptr and also, after you private the constructor and make it friend to cs\_new, you dont need enable\_this\_from\_shared, you can simply use cs\_safe to covert _this_ pointer to a ptr\<T\> object.
 
 ## Contact Us
 
