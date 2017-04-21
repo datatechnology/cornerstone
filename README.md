@@ -17,17 +17,17 @@ To respect Andy Chen's work, we keep using **cornerstone** as the project's name
 The key advantage or could be disadvantage for this implementation is it does not have any additional code that is unrelated to raft consensus itself. Which means, it does not have state machine, which could be a storange service.
 It also has very few dependencies, actually, only the STL and asio. It chooese asio is because asio supports both timer framework and async socket framework, which could be run on Windows, Linux and BSD systems.
 The project only contains the following stuff,
-- 1. core algorithm, raft_server.cxx
-- 2. fstream based log storage
-- 3. asio based timer implementation
-- 4. asio based rpc server and client (through tcp)
-- 5. buffered logger implementation
+ 1. core algorithm, raft_server.cxx
+ 2. fstream based log storage
+ 3. asio based timer implementation
+ 4. asio based rpc server and client (through tcp)
+ 5. buffered logger implementation
 
 ### Why these are sufficient?
-- 1. Core is core, it's all about Raft itself, developers could just copy the headers and this file to make Raft work.
-- 2. For log storage, fstream based is sufficient, even for production code, why?
- * This storage is a sequential storage, which means it may fallback to some position, but it does not do random seeking
- * It's sequential accessing, no index is required, means, no special file format is required
+ 1. Core is core, it's all about Raft itself, developers could just copy the headers and this file to make Raft work.
+ 2. For log storage, fstream based is sufficient, even for production code, why?
+ ..* This storage is a sequential storage, which means it may fallback to some position, but it does not do random seeking
+ ..* It's sequential accessing, no index is required, means, no special file format is required
 - 3. Asio is sufficient, you may think about having messge queues for incoming and outgoing requests, but that's unnecessary, as long as you are using async io, no matter it's IOCP, kqueue or epoll, there is already a queue behind the scene, asio would be good enough as a production based code.
 
 You are not able to get an exe file to do something meaningful by building the project, actually, you will get archive file instead (or lib file on Windows), however, you can build the test project and see how to use it and how it would work
