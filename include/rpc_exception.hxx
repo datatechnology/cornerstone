@@ -29,11 +29,11 @@ namespace cornerstone {
         ptr<req_msg> req() const { return req_; }
 
         virtual const char* what() const throw() __override__ {
-            return err_;
+            return err_.c_str();
         }
     private:
         ptr<req_msg> req_;
-        const char* err_;
+        std::string err_;
     };
 }
 

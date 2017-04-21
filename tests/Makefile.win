@@ -109,13 +109,13 @@ TARGETPDB=$(TARGETNAME).pdb
 LINKFLAGS=$(LINKFLAGS) /DEBUG
 
 !if "$(UMTYPE)" == "console"
-LINKFLAGS=$(LINKFLAGS) $(conlflags) /pdb:"$(TARGETPATH)\$(TARGETPDB)"
+LINKFLAGS=$(LINKFLAGS) $(conlflags) /pdb:"$(TARGETPDB)"
 USE_LIBS=$(USE_LIBS) $(conlibs)
 !elseif "$(UMTYPE)" == "windows"
-LINKFLAGS=$(LINKFLAGS) $(guilflags) /pdb:"$(TARGETPATH)\$(TARGETPDB)"
+LINKFLAGS=$(LINKFLAGS) $(guilflags) /pdb:"$(TARGETPDB)"
 USE_LIBS=$(USE_LIBS) $(guilibs)
 !elseif "$(UMTYPE)" == "dll"
-LINKFLAGS=$(LINKFLAGS) $(dlllflags) /pdb:"$(TARGETPATH)\$(TARGETPDB)"
+LINKFLAGS=$(LINKFLAGS) $(dlllflags) /pdb:"$(TARGETPDB)"
 USE_LIBS=$(USE_LIBS) $(conlibs)
 TARGETTYPE=dll
 !else
@@ -126,7 +126,7 @@ LINKFLAGS=
 
 !if "$(UMTYPE)" != "lib"
 !   ifndef DEBUG
-LINKFLAGS=$(LINKFLAGS) /PDBSTRIPPED:"$(TARGETPATH)\$(TARGETNAME).pri"
+LINKFLAGS=$(LINKFLAGS) /PDBSTRIPPED:"$(TARGETNAME).pri"
 !   endif
 !endif
 
@@ -151,17 +151,17 @@ all:$(_TARGETNAME)
 $(_TARGETNAME):$(OBJS)
     $(link) $(LINKFLAGS) /out:"$(_TARGETNAME)" $(USE_LIBS) $**
 .c.obj:
-    $(cc) /c $(cflags) /Fo$@ $<
+    $(cc) /c $(cflags) /Fd"$(TARGETPDB)" /Fo$@ $<
 
 .cpp.obj:
-    $(cc) /c $(cflags) /Fo$@ /EHac $<
+    $(cc) /c $(cflags) /Fd"$(TARGETPDB)" /Fo$@ /EHac $<
 
 .cxx.obj:
-    $(cc) /c $(cflags) /Fo$@ /EHac $<
+    $(cc) /c $(cflags) /Fd"$(TARGETPDB)" /Fo$@ /EHac $<
 
 clean:
     @rd /s /q "$(BIN_DIR)"
-    @del *.obj
+    @for %i in ($(SOURCES)) do (del %~dpni.obj)
     @del *.pdb
 	@del *.ilk
 	@del *.lib
