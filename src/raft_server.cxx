@@ -154,7 +154,7 @@ ptr<resp_msg> raft_server::handle_append_entries(req_msg& req) {
             if (entry->get_val_type() == log_val_type::app_log) {
                 state_machine_->pre_commit(idx, entry->get_buf());
             }
-            else {
+            else if(entry->get_val_type() == log_val_type::conf) {
                 l_->info(sstrfmt("receive a config change from leader at %llu").fmt(idx));
                 config_changing_ = true;
             }
@@ -170,9 +170,8 @@ ptr<resp_msg> raft_server::handle_append_entries(req_msg& req) {
             if (entry->get_val_type() == log_val_type::conf) {
                 l_->info(sstrfmt("receive a config change from leader at %llu").fmt(idx_for_entry));
                 config_changing_ = true;
-
             }
-            else {
+            else if(entry->get_val_type() == log_val_type::app_log) {
                 state_machine_->pre_commit(idx_for_entry, entry->get_buf());
             }
         }
