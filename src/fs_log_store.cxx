@@ -274,6 +274,7 @@ fs_log_store::fs_log_store(const std::string& log_folder, int buf_size)
         start_idx_file_.seekp(0, std::fstream::beg);
         start_idx_file_ << *idx_buf;
         entries_in_store_ = 0;
+        start_idx_file_.flush();
     }
 
     buf_ = new log_store_buffer(entries_in_store_ > (size_t)buf_size_ ? entries_in_store_ - buf_size_ + start_idx_ : start_idx_, buf_size_);
@@ -677,6 +678,7 @@ bool fs_log_store::compact(ulong last_log_index) {
             start_idx_buf->put(last_log_index + 1);
             start_idx_buf->pos(0);
             start_idx_file_ << *start_idx_buf;
+            start_idx_file_.flush();
             start_idx_ = last_log_index + 1;
             entries_in_store_ = 0;
             buf_->reset(start_idx_);

@@ -1,7 +1,7 @@
 TARGETNAME=cornerstone
 INCLUDES=asio/asio/include
 UMTYPE=lib
-USE_MSVCRT=YES
+USE_MSVCRT=NO
 USE_UNICODE=NO
 DEBUG=YES
 cflags=$(cflags) /D_WIN32_WINNT=0x0501
@@ -21,4 +21,4 @@ asio/asio/include/asio.hpp:
 	@git clone https://github.com/chriskohlhoff/asio.git
 
 tests:	asio
-	@cd tests && nmake -f Makefile.win all && debug\obj\testr.exe && cd ..
+	@cd tests && nmake -f Makefile.win all && testr.exe && cd ..
