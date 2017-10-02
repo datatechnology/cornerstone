@@ -30,7 +30,8 @@ namespace cornerstone {
             log_sync_stop_gap_(10),
             snapshot_distance_(0),
             snapshot_block_size_(0),
-            max_append_size_(100) {}
+            max_append_size_(100),
+            reserved_log_items_(10000) {}
 
         __nocopy__(raft_params)
     public:
@@ -127,6 +128,16 @@ namespace cornerstone {
             return *this;
         }
 
+        /**
+        * The number of reserved log items when doing log compaction
+        * @param number_of_logs number of log items
+        * @return self
+        */
+        raft_params& with_reserved_log_items(int number_of_logs) {
+            reserved_log_items_ = number_of_logs;
+            return *this;
+        }
+
         int max_hb_interval() const {
             return std::max(heart_beat_interval_, election_timeout_lower_bound_ - (heart_beat_interval_ / 2));
         }
@@ -141,6 +152,7 @@ namespace cornerstone {
         int32 snapshot_distance_;
         int32 snapshot_block_size_;
         int32 max_append_size_;
+        int32 reserved_log_items_;
     };
 }
 

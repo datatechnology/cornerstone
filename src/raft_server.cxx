@@ -590,30 +590,35 @@ void raft_server::commit(ulong target_idx) {
 }
 
 void raft_server::snapshot_and_compact(ulong committed_idx) {
+    if(committed_idx <= ((ulong)ctx_->params_->reserved_log_items_ + log_store_->start_index())) {
+        return;
+    }
+
+    ulong target_committed_idx = committed_idx - (ulong)ctx_->params_->reserved_log_items_;
     bool snapshot_in_action = false;
     try {
         bool f = false;
         if (ctx_->params_->snapshot_distance_ > 0
-            && (committed_idx - log_store_->start_index()) > (ulong)ctx_->params_->snapshot_distance_
+            && (target_committed_idx - log_store_->start_index()) > (ulong)ctx_->params_->snapshot_distance_
             && snp_in_progress_.compare_exchange_strong(f, true)) {
             snapshot_in_action = true;
             ptr<snapshot> snp(state_machine_->last_snapshot());
-            if (snp && (committed_idx - snp->get_last_log_idx()) < (ulong)ctx_->params_->snapshot_distance_) {
+            if (snp && (target_committed_idx - snp->get_last_log_idx()) < (ulong)ctx_->params_->snapshot_distance_) {
                 l_->info(sstrfmt("a very recent snapshot is available at index %llu, will skip this one").fmt(snp->get_last_log_idx()));
                 snp_in_progress_.store(false);
                 snapshot_in_action = false;
             }
             else {
-                l_->info(sstrfmt("creating a snapshot for index %llu").fmt(committed_idx));
+                l_->info(sstrfmt("creating a snapshot for index %llu").fmt(target_committed_idx));
 
                 // get the latest configuration info
                 ptr<cluster_config> conf(config_);
-                while (conf->get_log_idx() > committed_idx && conf->get_prev_log_idx() >= log_store_->start_index()) {
+                while (conf->get_log_idx() > target_committed_idx && conf->get_prev_log_idx() >= log_store_->start_index()) {
                     ptr<log_entry> conf_log(log_store_->entry_at(conf->get_prev_log_idx()));
                     conf = cluster_config::deserialize(conf_log->get_buf());
                 }
 
-                if (conf->get_log_idx() > committed_idx &&
+                if (conf->get_log_idx() > target_committed_idx &&
                     conf->get_prev_log_idx() > 0 &&
                     conf->get_prev_log_idx() < log_store_->start_index()) {
                     ptr<snapshot> s(state_machine_->last_snapshot());
@@ -626,14 +631,14 @@ void raft_server::snapshot_and_compact(ulong committed_idx) {
 
                     conf = s->get_last_config();
                 }
-                else if (conf->get_log_idx() > committed_idx && conf->get_prev_log_idx() == 0) {
+                else if (conf->get_log_idx() > target_committed_idx && conf->get_prev_log_idx() == 0) {
                     l_->err("BUG!!! stop the system, there must be a configuration at index one");
                     ctx_->state_mgr_->system_exit(-1);
                     ::exit(-1);
                     return;
                 }
 
-                ulong idx_to_compact = committed_idx - 1;
+                ulong idx_to_compact = target_committed_idx;
                 ulong log_term_to_compact = log_store_->term_at(idx_to_compact);
                 ptr<snapshot> new_snapshot(cs_new<snapshot>(idx_to_compact, log_term_to_compact, conf));
                 async_result<bool>::handler_type handler = (async_result<bool>::handler_type) std::bind(&raft_server::on_snapshot_completed, this, new_snapshot, std::placeholders::_1, std::placeholders::_2);
@@ -645,7 +650,7 @@ void raft_server::snapshot_and_compact(ulong committed_idx) {
         }
     }
     catch (...) {
-        l_->err(sstrfmt("failed to compact logs at index %llu due to errors").fmt(committed_idx));
+        l_->err(sstrfmt("failed to compact logs at index %llu due to errors").fmt(target_committed_idx));
         if (snapshot_in_action) {
             bool val = true;
             snp_in_progress_.compare_exchange_strong(val, false);
