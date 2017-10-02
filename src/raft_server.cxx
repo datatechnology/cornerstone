@@ -948,7 +948,7 @@ void raft_server::handle_ext_resp(ptr<resp_msg>& resp, ptr<rpc_exception>& err) 
         if (srv_to_join_) {
             if (resp->get_accepted()) {
                 l_->debug("new server confirms it will join, start syncing logs to it");
-                sync_log_to_new_srv(1);
+                sync_log_to_new_srv(resp->get_next_idx());
             }
             else {
                 l_->debug("new server cannot accept the invitation, give up");
