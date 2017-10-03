@@ -614,15 +614,14 @@ void raft_server::snapshot_and_compact(ulong committed_idx) {
             if (conf->get_log_idx() > committed_idx &&
                 conf->get_prev_log_idx() > 0 &&
                 conf->get_prev_log_idx() < log_store_->start_index()) {
-                ptr<snapshot> s(state_machine_->last_snapshot());
-                if (!s) {
+                if (!snp) {
                     l_->err("No snapshot could be found while no configuration cannot be found in current committed logs, this is a system error, exiting");
                     ctx_->state_mgr_->system_exit(-1);
                     ::exit(-1);
                     return;
                 }
 
-                conf = s->get_last_config();
+                conf = snp->get_last_config();
             }
             else if (conf->get_log_idx() > committed_idx && conf->get_prev_log_idx() == 0) {
                 l_->err("BUG!!! stop the system, there must be a configuration at index one");
