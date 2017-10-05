@@ -31,6 +31,10 @@ namespace cornerstone{
             return term_;
         }
 
+        void set_term(ulong term) {
+            term_ = term;
+        }
+
         log_val_type get_val_type() const {
             return value_type_;
         }

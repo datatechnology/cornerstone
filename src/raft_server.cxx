@@ -206,6 +206,9 @@ ptr<resp_msg> raft_server::handle_cli_req(req_msg& req) {
 
     std::vector<ptr<log_entry>>& entries = req.log_entries();
     for (size_t i = 0; i < entries.size(); ++i) {
+        // force the log's term to current term
+        entries.at(i)->set_term(state_->get_term());
+
         log_store_->append(entries.at(i));
         state_machine_->pre_commit(log_store_->next_slot() - 1, entries.at(i)->get_buf());
     }
