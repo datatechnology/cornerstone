@@ -139,6 +139,10 @@ public:
         return 0;
     }
 
+    virtual ulong last_commit_index() {
+        return 0;
+    }
+
     virtual ptr<snapshot> last_snapshot() {
         return ptr<snapshot>();
     }

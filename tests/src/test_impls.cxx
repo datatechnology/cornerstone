@@ -215,6 +215,10 @@ public:
         return ptr<snapshot>();
     }
 
+    virtual ulong last_commit_index() {
+        return 0;
+    }
+
     virtual void create_snapshot(snapshot& s, async_result<bool>::handler_type& when_done) {}
 };
 
