@@ -1366,8 +1366,6 @@ void raft_server::commit_in_bg() {
 
                 snapshot_and_compact(sm_commit_index_);
             }
-
-            ctx_->state_mgr_->save_state(*state_);
         }catch(std::exception& err){
             l_->err(lstrfmt("background committing thread encounter err %s, exiting to protect the system").fmt(err.what()));
             ctx_->state_mgr_->system_exit(-1);
