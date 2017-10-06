@@ -894,6 +894,11 @@ bool raft_server::handle_snapshot_sync_req(snapshot_sync_req& req) {
                 sm_commit_index_ = req.get_snapshot().get_last_log_idx();
                 quick_commit_idx_ = req.get_snapshot().get_last_log_idx();
                 ctx_->state_mgr_->save_state(*state_);
+                last_snapshot_ = cs_new<snapshot>(
+                    req.get_snapshot().get_last_log_idx(), 
+                    req.get_snapshot().get_last_log_term(), 
+                    config_, 
+                    req.get_snapshot().size());
                 restart_election_timer();
                 l_->info("snapshot is successfully applied");
             }
