@@ -42,8 +42,8 @@ namespace cornerstone {
         // logger implementation
         class fs_based_logger : public logger {
         public:
-            fs_based_logger(asio_service_impl& impl, const std::string& log_file, cornerstone::asio_service::log_level level)
-                : svc_impl_(impl), level_(level), fs_(log_file), buffer_(), lock_() {}
+            fs_based_logger(const std::string& log_file, cornerstone::asio_service::log_level level)
+                : level_(level), fs_(log_file), buffer_(), lock_() {}
 
             virtual ~fs_based_logger();
 
@@ -77,7 +77,6 @@ namespace cornerstone {
         private:
             void write_log(const std::string& level, const std::string& log_line);
         private:
-	        cornerstone::asio_service_impl& svc_impl_;
             cornerstone::asio_service::log_level level_;
             std::ofstream fs_;
             std::queue<std::string> buffer_;
@@ -216,7 +215,7 @@ namespace cornerstone {
                     resp_buf->put(resp->get_next_idx());
                     resp_buf->put((byte)resp->get_accepted());
                     resp_buf->pos(0);
-                    asio::async_write(socket_, asio::buffer(resp_buf->data(), RPC_RESP_HEADER_SIZE), [this, self](asio::error_code err_code, size_t) -> void {
+                    asio::async_write(socket_, asio::buffer(resp_buf->data(), RPC_RESP_HEADER_SIZE), [this, self, resp_buf](asio::error_code err_code, size_t) -> void {
                         if (!err_code) {
                             this->header_->pos(0);
                             this->start();
@@ -302,7 +301,7 @@ namespace cornerstone {
     class asio_rpc_client : public rpc_client, public std::enable_shared_from_this<asio_rpc_client> {
     public:
         asio_rpc_client(asio::io_service& io_svc, std::string& host, std::string& port)
-            : io_svc_(io_svc), resolver_(io_svc), socket_(io_svc), host_(host), port_(port) {}
+            : resolver_(io_svc), socket_(io_svc), host_(host), port_(port) {}
         virtual ~asio_rpc_client() {
             if (socket_.is_open()) {
                 socket_.close();
@@ -358,7 +357,7 @@ namespace cornerstone {
                 }
 
                 req_buf->pos(0);
-                asio::async_write(socket_, asio::buffer(req_buf->data(), req_buf->size()), std::bind(&asio_rpc_client::sent, self, req, when_done, std::placeholders::_1, std::placeholders::_2));
+                asio::async_write(socket_, asio::buffer(req_buf->data(), req_buf->size()), std::bind(&asio_rpc_client::sent, self, req, req_buf, when_done, std::placeholders::_1, std::placeholders::_2));
             }
         }
     private:
@@ -373,7 +372,7 @@ namespace cornerstone {
             }
         }
 
-        void sent(ptr<req_msg>& req, rpc_handler& when_done, std::error_code err, size_t bytes_transferred) {
+        void sent(ptr<req_msg>& req, ptr<buffer>& buf, rpc_handler& when_done, std::error_code err, size_t bytes_transferred) {
             ptr<asio_rpc_client> self(this->shared_from_this());
             if (!err) {
                 // read a response
@@ -409,7 +408,6 @@ namespace cornerstone {
         }
 
     private:
-        asio::io_service& io_svc_;
         asio::ip::tcp::resolver resolver_;
         asio::ip::tcp::socket socket_;
         std::string host_;
@@ -575,7 +573,7 @@ ptr<rpc_client> asio_service::create_client(const std::string& endpoint) {
 }
 
 ptr<logger> asio_service::create_logger(log_level level, const std::string& log_file) {
-    ptr<fs_based_logger> l = cs_new<fs_based_logger, asio_service_impl&, const std::string&, log_level>(*impl_, log_file, level);
+    ptr<fs_based_logger> l = cs_new<fs_based_logger, const std::string&, log_level>(log_file, level);
     {
         std::lock_guard<std::mutex> guard(impl_->logger_list_lock_);
         impl_->loggers_.push_back(l);
