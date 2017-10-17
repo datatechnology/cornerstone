@@ -5,6 +5,7 @@ A very lightweight but complete Raft Consensus C++ implementation, the original 
 To respect Andy Chen's work, we keep using **cornerstone** as the project's name and we will start iterating based on his work.
 
 **We throw away ptr\<T\>, now resources are managed by shared_ptr!**
+
 **Don't put fs_log_store into production, it's for demo and algorithm verification only**
 
 ## Features
