@@ -1,9 +1,11 @@
+
 # cornerstone
 A very lightweight but complete Raft Consensus C++ implementation, the original implementation was published by [Andy Chen] (https://github.com/andy-yx-chen), as he agrees,  we re-organize his source code, and republish under the same license.
 
 To respect Andy Chen's work, we keep using **cornerstone** as the project's name and we will start iterating based on his work.
 
 **We throw away ptr\<T\>, now resources are managed by shared_ptr!**
+**Don't put fs_log_store into production, it's for demo and algorithm verification only**
 
 ## Features
 - [x] Core algorithm, implemented based on TLA+ spec (though the spec does not have timer module)
@@ -25,9 +27,7 @@ The project only contains the following stuff,
 
 ### Why these are sufficient?
 1. Core is core, it's all about Raft itself, developers could just copy the headers and this file to make Raft work.
-2. For log storage, fstream based is sufficient, even for production code, why?
-    1. This storage is a sequential storage, which means it may fallback to some position, but it does not do random seeking
-    2. It's sequential accessing, no index is required, means, no special file format is required
+2. For log storage, please make your platform specific implementation, we may or may not add sophisticated implementation as it's not hard for everyone to implement one, the existing fs_log_store is for demo only as it's lack of many stuff including flush file data and meta data into physical device, always keeping three files in correct state (sort of transactional), etc.
 3. Asio is sufficient, you may think about having messge queues for incoming and outgoing requests, but that's unnecessary, as long as you are using async io, no matter it's IOCP, kqueue or epoll, there is already a queue behind the scene, asio would be good enough as a production based code.
 
 You are not able to get an exe file to do something meaningful by building the project, actually, you will get archive file instead (or lib file on Windows), however, you can build the test project and see how to use it and how it would work
