@@ -538,10 +538,8 @@ void asio_service::schedule(ptr<delayed_task>& task, int32 milliseconds) {
     if (task->get_impl_context() == nilptr) {
         task->set_impl_context(new asio::steady_timer(impl_->io_svc_), &_free_timer_);
     }
-    else {
-        // this task has been scheduled before, ensure it's not in cancelled state
-        task->reset();
-    }
+    // ensure it's not in cancelled state
+    task->reset();
 
     asio::steady_timer* timer = static_cast<asio::steady_timer*>(task->get_impl_context());
     timer->expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(milliseconds)));
