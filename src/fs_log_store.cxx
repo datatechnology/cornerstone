@@ -142,7 +142,7 @@ public:
         size_t good_cnt = static_cast<size_t>((size_t)cnt > buf_.size() - offset ? buf_.size() - offset : cnt);
         std::vector<ptr<buffer>> buffers;
         size_t size = 0;
-        for (size_t i = offset; i < offset + good_cnt; ++offset) {
+        for (size_t i = offset; i < offset + good_cnt; ++i) {
             ptr<buffer> buf = buf_[i]->serialize();
             size += buf->size();
         }
