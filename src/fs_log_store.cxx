@@ -569,7 +569,21 @@ void fs_log_store::apply_pack(ulong index, buffer& pack) {
         data_file_.seekp(data_pos_buf->get_ulong());
     }
 
-    idx_file_.write(reinterpret_cast<const char*>(pack.data()), idx_len);
+    ulong prev_data_pos = data_file_.tellp();
+    size_t prev_pack_pos = pack.pos();
+    ulong first_idx = pack.get_ulong();
+    pack.pos(prev_pack_pos);
+    if (prev_data_pos == first_idx) {
+        idx_file_.write(reinterpret_cast<const char*>(pack.data()), idx_len);
+    } else {
+        int32 byte_read = 0;
+        while (byte_read < idx_len) {
+            ulong adjusted_idx = pack.get_ulong() + prev_data_pos - first_idx;
+            idx_file_.write(reinterpret_cast<const char*>(&adjusted_idx), sz_ulong);
+            byte_read += sz_ulong;
+        }
+        pack.pos(prev_pack_pos);
+    }
     data_file_.write(reinterpret_cast<const char*>(pack.data() + idx_len), data_len);
     idx_file_.flush();
     data_file_.flush();
