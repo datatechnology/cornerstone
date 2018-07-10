@@ -447,12 +447,17 @@ void raft_server::handle_install_snapshot_resp(resp_msg& resp) {
 }
 
 void raft_server::handle_voting_resp(resp_msg& resp) {
-    votes_responded_ += 1;
+    if (resp.get_term() != state_->get_term()) {
+        l_->info(sstrfmt("Received an outdated vote response at term %llu v.s. current term %llu").fmt(resp.get_term(), state_->get_term()));
+        return;
+    }
+    
     if (election_completed_) {
         l_->info("Election completed, will ignore the voting result from this server");
         return;
     }
 
+    votes_responded_ += 1;
     if (resp.get_accepted()) {
         votes_granted_ += 1;
     }
