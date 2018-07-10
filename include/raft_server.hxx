@@ -24,7 +24,6 @@ namespace cornerstone {
         raft_server(context* ctx)
         : leader_(-1),
             id_(ctx->state_mgr_->server_id()),
-            votes_responded_(0),
             votes_granted_(0),
             quick_commit_idx_(ctx->state_machine_->last_commit_index()),
             sm_commit_index_(ctx->state_machine_->last_commit_index()),
@@ -56,7 +55,8 @@ namespace cornerstone {
             ready_to_stop_cv_(),
             resp_handler_((rpc_handler)std::bind(&raft_server::handle_peer_resp, this, std::placeholders::_1, std::placeholders::_2)),
             ex_resp_handler_((rpc_handler)std::bind(&raft_server::handle_ext_resp, this, std::placeholders::_1, std::placeholders::_2)), 
-            last_snapshot_(ctx->state_machine_->last_snapshot()) {
+            last_snapshot_(ctx->state_machine_->last_snapshot()),
+            voted_servers_() {
             uint seed = (uint)(std::chrono::system_clock::now().time_since_epoch().count() * id_);
             std::default_random_engine engine(seed);
             std::uniform_int_distribution<int32> distribution(ctx->params_->election_timeout_lower_bound_, ctx->params_->election_timeout_upper_bound_);
@@ -187,7 +187,6 @@ namespace cornerstone {
         static const int default_snapshot_sync_block_size;
         int32 leader_;
         int32 id_;
-        int32 votes_responded_;
         int32 votes_granted_;
         ulong quick_commit_idx_;
         ulong sm_commit_index_;
@@ -221,6 +220,7 @@ namespace cornerstone {
         rpc_handler resp_handler_;
         rpc_handler ex_resp_handler_;
         ptr<snapshot> last_snapshot_;
+        std::unordered_set<int32> voted_servers_;
     };
 }
 #endif //_RAFT_SERVER_HXX_

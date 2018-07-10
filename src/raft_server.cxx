@@ -263,7 +263,7 @@ void raft_server::handle_election_timeout() {
     state_->set_voted_for(-1);
     role_ = srv_role::candidate;
     votes_granted_ = 0;
-    votes_responded_ = 0;
+    voted_servers_.clear();
     election_completed_ = false;
     ctx_->state_mgr_->save_state(*state_);
     request_vote();
@@ -279,7 +279,7 @@ void raft_server::request_vote() {
     state_->set_voted_for(id_);
     ctx_->state_mgr_->save_state(*state_);
     votes_granted_ += 1;
-    votes_responded_ += 1;
+    voted_servers_.insert(id_);
 
     // is this the only server?
     if (votes_granted_ > (int32)(peers_.size() + 1) / 2) {
@@ -457,12 +457,17 @@ void raft_server::handle_voting_resp(resp_msg& resp) {
         return;
     }
 
-    votes_responded_ += 1;
+    if (voted_servers_.find(resp.get_src()) != voted_servers_.end()) {
+        l_->info(sstrfmt("Duplicate vote from %d for term %lld").fmt(resp.get_src(), state_->get_term()));
+        return;
+    }
+
+    voted_servers_.insert(resp.get_src());
     if (resp.get_accepted()) {
         votes_granted_ += 1;
     }
 
-    if (votes_responded_ >= (int32)(peers_.size() + 1)) {
+    if (voted_servers_.size() >= (peers_.size() + 1)) {
         election_completed_ = true;
     }
 
@@ -568,7 +573,7 @@ bool raft_server::update_term(ulong term) {
         state_->set_voted_for(-1);
         election_completed_ = false;
         votes_granted_ = 0;
-        votes_responded_ = 0;
+        voted_servers_.clear();
         ctx_->state_mgr_->save_state(*state_);
         become_follower();
         return true;
