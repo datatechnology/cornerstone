@@ -1,0 +1,17 @@
+@PACKAGE_INIT@
+
+# Include the exported CMake file
+get_filename_component(cornerstone_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+# This macro enables usage of find_dependency().
+# https://cmake.org/cmake/help/v3.11/module/CMakeFindDependencyMacro.html
+include(CMakeFindDependencyMacro)
+
+# Declare the used packages in order to communicate the requirements upstream.
+# find_dependency(asio ...)
+
+if(NOT TARGET cornerstone::cornerstone)
+include("${cornerstone_CMAKE_DIR}/cornerstone-targets.cmake")
+endif()
+
+check_required_components(cornerstone)
