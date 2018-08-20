@@ -3,7 +3,7 @@ debug/
 Debug/
 .vs/
 *.user
-asio/
+#asio/
 nbproject/
 *.obj
 *.o
@@ -13,3 +13,6 @@ nbproject/
 *.exe
 *.ilk
 *.lib
+cmake-*/
+build/
+.idea/
