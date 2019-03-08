@@ -35,12 +35,13 @@ namespace cornerstone {
 
     public:
         void when_ready(handler_type& handler) {
-            std::lock_guard<std::mutex> guard(lock_);
-            if (has_result_) {
-                handler(result_, err_);
-            }
-            else {
+            {
+                std::lock_guard<std::mutex> guard(lock_);
                 handler_ = handler;
+            }
+
+            if (has_result_) {
+                handler_(result_, err_);
             }
         }
 
@@ -50,9 +51,10 @@ namespace cornerstone {
                 result_ = result;
                 err_ = err;
                 has_result_ = true;
-	            if (handler_) {
-		            handler_(result, err);
-		        }
+	        }
+
+            if (handler_) {
+	            handler_(result, err);
 	        }
 
             cv_.notify_all();
@@ -79,7 +81,7 @@ namespace cornerstone {
     private:
         T result_;
         TE err_;
-        bool has_result_;
+        volatile bool has_result_;
         handler_type handler_;
         std::mutex lock_;
         std::condition_variable cv_;
