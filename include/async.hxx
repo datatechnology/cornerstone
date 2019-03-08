@@ -35,26 +35,37 @@ namespace cornerstone {
 
     public:
         void when_ready(handler_type& handler) {
+            if (!handler)
+            {
+                // handler is invalid
+                return;
+            }
+
             {
                 std::lock_guard<std::mutex> guard(lock_);
                 handler_ = handler;
             }
 
             if (has_result_) {
-                handler_(result_, err_);
+                handler(result_, err_);
             }
         }
 
         void set_result(T& result, TE& err) {
+            handler_type handler;
 	        {
                 std::lock_guard<std::mutex> guard(lock_);
                 result_ = result;
                 err_ = err;
                 has_result_ = true;
+                if (handler_)
+                {
+                    handler = handler_; // copy handler as std::function assignment is not atomic guaranteed
+                }
 	        }
 
-            if (handler_) {
-	            handler_(result, err);
+            if (handler) {
+	            handler(result, err);
 	        }
 
             cv_.notify_all();
