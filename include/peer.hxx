@@ -130,7 +130,7 @@ namespace cornerstone {
 
         void send_req(ptr<req_msg>& req, rpc_handler& handler);
     private:
-        void handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result, ptr<resp_msg>& resp, ptr<rpc_exception>& err);
+        void handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result, ptr<resp_msg>& resp, const ptr<rpc_exception>& err);
     private:
         ptr<srv_config> config_;
         ptr<delayed_task_scheduler> scheduler_;

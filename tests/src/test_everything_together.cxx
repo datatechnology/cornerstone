@@ -169,7 +169,7 @@ void test_raft_server_with_asio() {
     buf->put("hello");
     buf->pos(0);
     msg->log_entries().push_back(cs_new<log_entry>(0, buf));
-    rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp, ptr<rpc_exception>& err) -> void {
+    rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp, const ptr<rpc_exception>& err) -> void {
         if (err) {
             std::cout << err->what() << std::endl;
         }
@@ -183,7 +183,7 @@ void test_raft_server_with_asio() {
             buf->put("hello");
             buf->pos(0);
             msg->log_entries().push_back(cs_new<log_entry>(0, buf));
-            rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp1, ptr<rpc_exception>& err1) -> void {
+            rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>& err1) -> void {
                 assert(rsp1->get_accepted());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 stop_test_cv1.notify_all();

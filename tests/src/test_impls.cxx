@@ -304,7 +304,7 @@ public:
 
     virtual void send(ptr<req_msg>& req, rpc_handler& when_done) __override__ {
         ptr<async_result<ptr<resp_msg>>> result(cs_new<async_result<ptr<resp_msg>>>());
-	    async_result<ptr<resp_msg>>::handler_type handler([req, when_done](ptr<resp_msg>& resp, ptr<std::exception>& err) -> void {
+        result->when_ready([req, when_done](ptr<resp_msg>& resp, const ptr<std::exception>& err) -> void {
             if (err != nilptr) {
                 ptr<rpc_exception> excep(cs_new<rpc_exception>(err->what(), req));
                 ptr<resp_msg> no_resp;
@@ -314,8 +314,7 @@ public:
                 ptr<rpc_exception> no_excep;
                 when_done(resp, no_excep);
             }
-        });
-        result->when_ready(handler);
+            });
         
         //TODO need to do deep copy of the req to avoid all instances sharing the same request object
         ptr<req_msg> dup_req(cs_new<req_msg>(req->get_term(), req->get_type(), req->get_src(), req->get_dst(), req->get_last_log_term(), req->get_last_log_idx(), req->get_commit_idx()));
@@ -415,7 +414,7 @@ void test_raft_server() {
     buf->put("hello");
     buf->pos(0);
     msg->log_entries().push_back(cs_new<log_entry>(0, buf));
-    rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp, ptr<rpc_exception>& err) -> void {
+    rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp, const ptr<rpc_exception>& err) -> void {
         assert(rsp->get_accepted() || rsp->get_dst() > 0);
         if (!rsp->get_accepted()) {
             client = rpc_factory->create_client(sstrfmt("port%d").fmt(rsp->get_dst()));
@@ -424,7 +423,7 @@ void test_raft_server() {
             buf->put("hello");
             buf->pos(0);
             msg->log_entries().push_back(cs_new<log_entry>(0, buf));
-            rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp1, ptr<rpc_exception>& err1) -> void {
+            rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>& err1) -> void {
                 assert(rsp1->get_accepted());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 stop_test_cv.notify_all();

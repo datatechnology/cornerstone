@@ -37,9 +37,8 @@ ptr<async_result<int>> create_and_set_async_result(int time_to_sleep, int value,
 
     std::thread th([=]() -> void {
         std::this_thread::sleep_for(std::chrono::milliseconds(time_to_sleep));
-        int val = value;
         ptr<std::exception> ex(err);
-        result->set_result(val, ex);
+        result->set_result(value, ex);
     });
 
     th.detach();
@@ -51,14 +50,12 @@ void test_async_result() {
     {
         ptr<async_result<int>> p(create_and_set_async_result(0, 123, no_except));
         assert(123 == p->get());
-        bool handler_called = false;
-	    int_handler h = (async_result<int>::handler_type)([&handler_called](int val, ptr<std::exception>& e) -> void {
+        bool handler_called = false;	
+        p->when_ready([&handler_called](int val, const ptr<std::exception>& e) -> void {
             assert(123 == val);
             assert(e == nullptr);
             handler_called = true;
 	    });
-	
-        p->when_ready(h);
         assert(handler_called);
     }
 
@@ -66,12 +63,11 @@ void test_async_result() {
     {
         ptr<async_result<int>> presult(create_and_set_async_result(200, 496, no_except));
         bool handler_called = false;
-	    int_handler h = (async_result<int>::handler_type)([&handler_called](int val, ptr<std::exception> e) -> void {
+        presult->when_ready([&handler_called](int val, const ptr<std::exception>& e) -> void {
             assert(496 == val);
             assert(e == nullptr);
             handler_called = true;
-	    });
-        presult->when_ready(h);
+            });
         assert(496 == presult->get());
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         assert(handler_called);
@@ -88,11 +84,10 @@ void test_async_result() {
         ptr<std::exception> ex = cs_new<std::bad_exception>();
         ptr<async_result<int>> presult(create_and_set_async_result(200, 496, ex));
         bool handler_called = false;
-	    int_handler h = (async_result<int>::handler_type)([&handler_called,ex](int val, ptr<std::exception>& e) -> void {
+        presult->when_ready([&handler_called, ex](int val, const ptr<std::exception>& e) -> void {
             assert(ex == e);
             handler_called = true;
-	    });
-        presult->when_ready(h);
+            });
 
         bool ex_handled = false;
         try {

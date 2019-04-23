@@ -22,3 +22,6 @@ asio/asio/include/asio.hpp:
 
 tests:	asio
 	@cd tests && nmake -f Makefile.win all && testr.exe && cd ..
+
+cleanlogs: asio
+	@cd tests && del *.log && rmdir /s /q store1 && rmdir /s /q store2 && rmdir /s /q store3

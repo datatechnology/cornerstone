@@ -155,11 +155,11 @@ namespace cornerstone {
         void request_vote();
         void request_append_entries();
         bool request_append_entries(peer& p);
-        void handle_peer_resp(ptr<resp_msg>& resp, ptr<rpc_exception>& err);
+        void handle_peer_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>& err);
         void handle_append_entries_resp(resp_msg& resp);
         void handle_install_snapshot_resp(resp_msg& resp);
         void handle_voting_resp(resp_msg& resp);
-        void handle_ext_resp(ptr<resp_msg>& resp, ptr<rpc_exception>& err);
+        void handle_ext_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>& err);
         void handle_ext_resp_err(rpc_exception& err);
         ptr<req_msg> create_append_entries_req(peer& p);
         ptr<req_msg> create_sync_snapshot_req(peer& p, ulong last_log_idx, ulong term, ulong commit_idx);
@@ -178,7 +178,7 @@ namespace cornerstone {
         void invite_srv_to_join_cluster();
         void rm_srv_from_cluster(int32 srv_id);
         int get_snapshot_sync_block_size() const;
-        void on_snapshot_completed(ptr<snapshot>& s, bool result, ptr<std::exception>& err);
+        void on_snapshot_completed(ptr<snapshot>& s, bool result, const ptr<std::exception>& err);
         void on_retryable_req_err(ptr<peer>& p, ptr<req_msg>& req);
         ulong term_for_log(ulong log_idx);
         void commit_in_bg();

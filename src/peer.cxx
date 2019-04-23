@@ -25,7 +25,7 @@ void peer::send_req(ptr<req_msg>& req, rpc_handler& handler) {
     rpc_->send(req, h);
 }
 
-void peer::handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result, ptr<resp_msg>& resp, ptr<rpc_exception>& err) {
+void peer::handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result, ptr<resp_msg>& resp, const ptr<rpc_exception>& err) {
     if (err == nilptr) {
         if (req->get_type() == msg_type::append_entries_request ||
             req->get_type() == msg_type::install_snapshot_request) {
@@ -33,8 +33,7 @@ void peer::handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result,
         }
 
         resume_hb_speed();
-        ptr<rpc_exception> no_except;
-        pending_result->set_result(resp, no_except);
+        pending_result->set_result(resp, ptr<rpc_exception>());
     }
     else {
         if (req->get_type() == msg_type::append_entries_request ||
@@ -43,7 +42,6 @@ void peer::handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result,
         }
 
         slow_down_hb();
-        ptr<resp_msg> no_resp;
-        pending_result->set_result(no_resp, err);
+        pending_result->set_result(ptr<resp_msg>(), err);
     }
 }
