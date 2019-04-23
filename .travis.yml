@@ -1,0 +1,7 @@
+language: cpp
+dist: xenial
+compiler:
+  - gcc
+install: make
+script:
+  - make -f Makefile.lx test
