@@ -16,3 +16,5 @@ nbproject/
 cmake-*/
 build/
 .idea/
+*.log
+tests/store*

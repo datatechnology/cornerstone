@@ -571,7 +571,7 @@ ptr<rpc_client> asio_service::create_client(const std::string& endpoint) {
 }
 
 ptr<logger> asio_service::create_logger(log_level level, const std::string& log_file) {
-    ptr<fs_based_logger> l = cs_new<fs_based_logger, const std::string&, log_level>(log_file, level);
+    ptr<fs_based_logger> l = cs_new<fs_based_logger>(log_file, level);
     {
         std::lock_guard<std::mutex> guard(impl_->logger_list_lock_);
         impl_->loggers_.push_back(l);
@@ -581,5 +581,5 @@ ptr<logger> asio_service::create_logger(log_level level, const std::string& log_
 }
 
 ptr<rpc_listener> asio_service::create_rpc_listener(ushort listening_port, ptr<logger>& l) {
-    return cs_new<asio_rpc_listener, asio::io_service&, ushort, ptr<logger>&>(impl_->io_svc_, listening_port, l);
+    return cs_new<asio_rpc_listener>(impl_->io_svc_, listening_port, l);
 }
