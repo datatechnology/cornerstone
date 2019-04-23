@@ -317,7 +317,7 @@ bool raft_server::request_append_entries(peer& p) {
     return false;
 }
 
-void raft_server::handle_peer_resp(ptr<resp_msg>& resp, ptr<rpc_exception>& err) {
+void raft_server::handle_peer_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>& err) {
     recur_lock(lock_);
     if (err) {
         l_->info(sstrfmt("peer response error: %s").fmt(err->what()));
@@ -660,7 +660,7 @@ void raft_server::snapshot_and_compact(ulong committed_idx) {
     }
 }
 
-void raft_server::on_snapshot_completed(ptr<snapshot>& s, bool result, ptr<std::exception>& err) {
+void raft_server::on_snapshot_completed(ptr<snapshot>& s, bool result, const ptr<std::exception>& err) {
     do {
         if (err != nilptr) {
             l_->err(lstrfmt("failed to create a snapshot due to %s").fmt(err->what()));
@@ -928,7 +928,7 @@ bool raft_server::handle_snapshot_sync_req(snapshot_sync_req& req) {
     return true;
 }
 
-void raft_server::handle_ext_resp(ptr<resp_msg>& resp, ptr<rpc_exception>& err) {
+void raft_server::handle_ext_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>& err) {
     recur_lock(lock_);
     if (err) {
         handle_ext_resp_err(*err);
@@ -1463,7 +1463,7 @@ ptr<async_result<bool>> raft_server::send_msg_to_leader(ptr<req_msg>& req) {
     }
 
     ptr<async_result<bool>> presult(cs_new<async_result<bool>>());
-    rpc_handler handler = [presult](ptr<resp_msg>& resp, ptr<rpc_exception>& err) -> void {
+    rpc_handler handler = [presult](ptr<resp_msg>& resp, const ptr<rpc_exception>& err) -> void {
         bool rpc_success(false);
         ptr<std::exception> perr;
         if (err) {

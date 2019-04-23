@@ -19,8 +19,8 @@
 #define _RPC_CLI_HXX_
 
 namespace cornerstone {
-    typedef async_result<ptr<resp_msg>, ptr<rpc_exception>> rpc_result;
-    typedef rpc_result::handler_type rpc_handler;
+    using rpc_result = async_result<ptr<resp_msg>, ptr<rpc_exception>>;
+    using rpc_handler = rpc_result::handler_type ;
 
     class rpc_client {
     __interface_body__(rpc_client)

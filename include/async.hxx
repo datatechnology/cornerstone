@@ -22,7 +22,7 @@ namespace cornerstone {
     template<typename T, typename TE = ptr<std::exception>>
     class async_result {
     public:
-        typedef std::function<void(T&, TE&)> handler_type;
+        typedef std::function<void(T&, const TE&)> handler_type;
         async_result() : err_(), has_result_(false), lock_(), cv_() {}
         explicit async_result(T& result)
             : result_(result), err_(), has_result_(true), lock_(), cv_() {}
@@ -34,29 +34,25 @@ namespace cornerstone {
         __nocopy__(async_result)
 
     public:
-        void when_ready(handler_type& handler) {
-            if (!handler)
-            {
-                // handler is invalid
-                return;
-            }
-
+        template<typename _THandler>
+        void when_ready(_THandler&& handler) {
             {
                 std::lock_guard<std::mutex> guard(lock_);
-                handler_ = handler;
+                handler_ = std::forward<_THandler>(handler);
             }
 
             if (has_result_) {
-                handler(result_, err_);
+                handler_(result_, err_);
             }
         }
 
-        void set_result(T& result, TE& err) {
+        template<typename _TResult, typename _TException>
+        void set_result(_TResult&& result, _TException&& err) {
             handler_type handler;
 	        {
                 std::lock_guard<std::mutex> guard(lock_);
-                result_ = result;
-                err_ = err;
+                result_ = std::forward<_TResult>(result);
+                err_ = std::forward<_TException>(err);
                 has_result_ = true;
                 if (handler_)
                 {
@@ -65,7 +61,7 @@ namespace cornerstone {
 	        }
 
             if (handler) {
-	            handler(result, err);
+	            handler(result_, err_);
 	        }
 
             cv_.notify_all();
