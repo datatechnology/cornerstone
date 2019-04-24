@@ -67,14 +67,14 @@ void cleanup() {
 }
 
 static ptr<log_entry> rnd_entry(std::function<int32()>& rnd) {
-    ptr<buffer> buf = buffer::alloc(rnd() % 100 + 8);
+    bufptr buf = buffer::alloc(rnd() % 100 + 8);
     for (size_t i = 0; i < buf->size(); ++i) {
         buf->put(static_cast<byte>(rnd() % 256));
     }
 
     buf->pos(0);
     log_val_type t = (log_val_type)(rnd() % 5 + 1);
-    return cs_new<log_entry>(rnd(), buf, t);
+    return cs_new<log_entry>(rnd(), std::move(buf), t);
 }
 
 static bool entry_equals(log_entry& entry1, log_entry& entry2) {
@@ -219,7 +219,7 @@ void test_log_store_pack() {
 
     int logs_copied = 0;
     while (logs_copied < logs_cnt) {
-        ptr<buffer> pack = store.pack(logs_copied + 1, 100);
+        bufptr pack = store.pack(logs_copied + 1, 100);
         store1.apply_pack(logs_copied + 1, *pack);
         logs_copied = std::min(logs_copied + 100, logs_cnt);
     }

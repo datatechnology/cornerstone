@@ -131,8 +131,8 @@ public:
     * @param cnt
     * @return log pack
     */
-    virtual ptr<buffer> pack(ulong index, int32 cnt) {
-        return ptr<buffer>();
+    virtual bufptr pack(ulong index, int32 cnt) {
+        return buffer::alloc(0);
     }
 
     /**
@@ -320,8 +320,8 @@ public:
         ptr<req_msg> dup_req(cs_new<req_msg>(req->get_term(), req->get_type(), req->get_src(), req->get_dst(), req->get_last_log_term(), req->get_last_log_idx(), req->get_commit_idx()));
         for (std::vector<ptr<log_entry>>::const_iterator it = req->log_entries().begin();
             it != req->log_entries().end(); ++it) {
-            ptr<buffer> buf = buffer::copy((*it)->get_buf());
-            ptr<log_entry> entry(cs_new<log_entry>((*it)->get_term(), buf, (*it)->get_val_type()));
+            bufptr buf = buffer::copy((*it)->get_buf());
+            ptr<log_entry> entry(cs_new<log_entry>((*it)->get_term(), std::move(buf), (*it)->get_val_type()));
             dup_req->log_entries().push_back(entry);
         }
 
@@ -410,19 +410,19 @@ void test_raft_server() {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     ptr<rpc_client> client(rpc_factory->create_client("port1"));
     ptr<req_msg> msg = cs_new<req_msg>(0, msg_type::client_request, 0, 1, 0, 0, 0);
-    ptr<buffer> buf = buffer::alloc(100);
+    bufptr buf = buffer::alloc(100);
     buf->put("hello");
     buf->pos(0);
-    msg->log_entries().push_back(cs_new<log_entry>(0, buf));
+    msg->log_entries().push_back(cs_new<log_entry>(0, std::move(buf)));
     rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp, const ptr<rpc_exception>& err) -> void {
         assert(rsp->get_accepted() || rsp->get_dst() > 0);
         if (!rsp->get_accepted()) {
             client = rpc_factory->create_client(sstrfmt("port%d").fmt(rsp->get_dst()));
             ptr<req_msg> msg = cs_new<req_msg>(0, msg_type::client_request, 0, 1, 0, 0, 0);
-            ptr<buffer> buf = buffer::alloc(100);
+            bufptr buf = buffer::alloc(100);
             buf->put("hello");
             buf->pos(0);
-            msg->log_entries().push_back(cs_new<log_entry>(0, buf));
+            msg->log_entries().push_back(cs_new<log_entry>(0, std::move(buf)));
             rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>& err1) -> void {
                 assert(rsp1->get_accepted());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -470,11 +470,11 @@ void run_raft_instance(int srv_id) {
 
     // some example code for how to append log entries to raft_server
     /*std::this_thread::sleep_for(std::chrono::seconds(1));
-    ptr<buffer> buf(buffer::alloc(100));
+    bufptr buf(buffer::alloc(100));
     buf->put(sstrfmt("log from srv %d").fmt(srv_id));
     buf->pos(0);
-    std::vector<ptr<buffer>> logs;
-    logs.push_back(buf);
+    std::vector<bufptr> logs;
+    logs.emplace_back(std::move(buf));
     ptr<async_result<bool>> presult = server->append_entries(logs);
     */
 

@@ -19,21 +19,22 @@
 
 using namespace cornerstone;
 
-ptr<buffer> cluster_config::serialize() {
+bufptr cluster_config::serialize() {
     size_t sz = 2 * sz_ulong + sz_int;
-    std::vector<ptr<buffer>> srv_buffs;
+    std::vector<bufptr> srv_buffs;
     for (cluster_config::const_srv_itor it = servers_.begin(); it != servers_.end(); ++it) {
-        ptr<buffer> buf = (*it)->serialize();
-        srv_buffs.push_back(buf);
+        bufptr buf = (*it)->serialize();
         sz += buf->size();
+        srv_buffs.emplace_back(std::move(buf));
     }
 
-    ptr<buffer> result = buffer::alloc(sz);
+    bufptr result = buffer::alloc(sz);
     result->put(log_idx_);
     result->put(prev_log_idx_);
     result->put((int32)servers_.size());
-    for (size_t i = 0; i < srv_buffs.size(); ++i) {
-        result->put(*srv_buffs[i]);
+    for (auto& item : srv_buffs)
+    {
+        result->put(*item);
     }
 
     result->pos(0);

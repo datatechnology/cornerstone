@@ -45,7 +45,7 @@ namespace cornerstone {
 
         static ptr<snapshot> deserialize(buffer& buf);
 
-        ptr<buffer> serialize();
+        bufptr serialize();
 
     private:
         ulong last_log_idx_;

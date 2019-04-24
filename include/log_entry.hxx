@@ -20,8 +20,8 @@
 namespace cornerstone{
     class log_entry{
     public:
-        log_entry(ulong term, const ptr<buffer>& buff, log_val_type value_type = log_val_type::app_log)
-            : term_(term), value_type_(value_type), buff_(buff) {
+        log_entry(ulong term, bufptr&& buff, log_val_type value_type = log_val_type::app_log)
+            : term_(term), value_type_(value_type), buff_(std::move(buff)) {
         }
 
     __nocopy__(log_entry)
@@ -48,9 +48,9 @@ namespace cornerstone{
             return *buff_;
         }
 
-        ptr<buffer> serialize() {
+        bufptr serialize() {
             buff_->pos(0);
-            ptr<buffer> buf = buffer::alloc(sizeof(ulong) + sizeof(char) + buff_->size());
+            bufptr buf = buffer::alloc(sizeof(ulong) + sizeof(char) + buff_->size());
             buf->put(term_);
             buf->put((static_cast<byte>(value_type_)));
             buf->put(*buff_);
@@ -61,8 +61,8 @@ namespace cornerstone{
         static ptr<log_entry> deserialize(buffer& buf) {
             ulong term = buf.get_ulong();
             log_val_type t = static_cast<log_val_type>(buf.get_byte());
-            ptr<buffer> data = buffer::copy(buf);
-            return cs_new<log_entry>(term, data, t);
+            bufptr data = buffer::copy(buf);
+            return cs_new<log_entry>(term, std::move(data), t);
         }
 
         static ulong term_in_buffer(buffer& buf) {
@@ -74,7 +74,7 @@ namespace cornerstone{
     private:
         ulong term_;
         log_val_type value_type_;
-        ptr<buffer> buff_;
+        bufptr buff_;
     };
 }
 #endif //_LOG_ENTRY_HXX_

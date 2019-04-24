@@ -43,29 +43,31 @@
 using namespace cornerstone;
 
 static void free_buffer(buffer* buf) {
-    delete[] reinterpret_cast<char*>(buf);
+    if (buf != nullptr) {
+        delete[] reinterpret_cast<char*>(buf);
+    }
 }
 
-ptr<buffer> buffer::alloc(const size_t size) {
+bufptr buffer::alloc(const size_t size) {
     if (size >= 0x80000000) {
         throw std::out_of_range("size exceed the max size that cornrestone::buffer could support");
     }
 
     if (size >= 0x8000) {
-        ptr<buffer> buf(reinterpret_cast<buffer*>(new char[size + sizeof(uint) * 2]), &free_buffer);
+        bufptr buf(reinterpret_cast<buffer*>(new char[size + sizeof(uint) * 2]), &free_buffer);
         any_ptr ptr = reinterpret_cast<any_ptr>(buf.get());
         __init_b_block(ptr, size);
         return buf;
     }
 
-    ptr<buffer> buf(reinterpret_cast<buffer*>(new char[size + sizeof(ushort) * 2]), &free_buffer);
+    bufptr buf(reinterpret_cast<buffer*>(new char[size + sizeof(ushort) * 2]), &free_buffer);
     any_ptr ptr = reinterpret_cast<any_ptr>(buf.get());
     __init_s_block(ptr, size);
     return buf;
 }
 
-ptr<buffer> buffer::copy(const buffer& buf) {
-    ptr<buffer> other = alloc(buf.size() - buf.pos());
+bufptr buffer::copy(const buffer& buf) {
+    bufptr other = alloc(buf.size() - buf.pos());
     other->put(buf);
     other->pos(0);
     return other;
@@ -197,7 +199,7 @@ void buffer::put(const std::string& str) {
     __mv_fw_block(this, str.length() + 1);
 }
 
-void buffer::get(ptr<buffer>& dst) {
+void buffer::get(bufptr& dst) {
     size_t sz = dst->size() - dst->pos();
     ::memcpy(dst->data(), data(), sz);
     __mv_fw_block(this, sz);

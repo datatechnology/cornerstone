@@ -540,8 +540,8 @@ void raft_server::become_leader() {
 
     if (config_->get_log_idx() == 0) {
         config_->set_log_idx(log_store_->next_slot());
-        ptr<buffer> conf_buf = config_->serialize();
-        ptr<log_entry> entry(cs_new<log_entry>(state_->get_term(), conf_buf, log_val_type::conf));
+        bufptr conf_buf = config_->serialize();
+        ptr<log_entry> entry(cs_new<log_entry>(state_->get_term(), std::move(conf_buf), log_val_type::conf));
         log_store_->append(entry);
         l_->info("save initial config to log store");
         config_changing_ = true;
@@ -1189,8 +1189,8 @@ void raft_server::sync_log_to_new_srv(ulong start_idx) {
         ptr<cluster_config> new_conf = cs_new<cluster_config>(log_store_->next_slot(), config_->get_log_idx());
         new_conf->get_servers().insert(new_conf->get_servers().end(), config_->get_servers().begin(), config_->get_servers().end());
         new_conf->get_servers().push_back(conf_to_add_);
-        ptr<buffer> new_conf_buf(new_conf->serialize());
-        ptr<log_entry> entry(cs_new<log_entry>(state_->get_term(), new_conf_buf, log_val_type::conf));
+        bufptr new_conf_buf(new_conf->serialize());
+        ptr<log_entry> entry(cs_new<log_entry>(state_->get_term(), std::move(new_conf_buf), log_val_type::conf));
         log_store_->append(entry);
         config_changing_ = true;
         request_append_entries();
@@ -1203,9 +1203,9 @@ void raft_server::sync_log_to_new_srv(ulong start_idx) {
     }
     else {
         int32 size_to_sync = std::min(gap, ctx_->params_->log_sync_batch_size_);
-        ptr<buffer> log_pack = log_store_->pack(start_idx, size_to_sync);
+        bufptr log_pack = log_store_->pack(start_idx, size_to_sync);
         req = cs_new<req_msg>(state_->get_term(), msg_type::sync_log_request, id_, srv_to_join_->get_id(), 0L, start_idx - 1, quick_commit_idx_);
-        req->log_entries().push_back(cs_new<log_entry>(state_->get_term(), log_pack, log_val_type::log_pack));
+        req->log_entries().push_back(cs_new<log_entry>(state_->get_term(), std::move(log_pack), log_val_type::log_pack));
     }
 
     srv_to_join_->send_req(req, ex_resp_handler_);
@@ -1263,8 +1263,8 @@ void raft_server::rm_srv_from_cluster(int32 srv_id) {
 
     l_->info(lstrfmt("removed a server from configuration and save the configuration to log store at %llu").fmt(new_conf->get_log_idx()));
     config_changing_ = true;
-    ptr<buffer> new_conf_buf(new_conf->serialize());
-    ptr<log_entry> entry(cs_new<log_entry>(state_->get_term(), new_conf_buf, log_val_type::conf));
+    bufptr new_conf_buf(new_conf->serialize());
+    ptr<log_entry> entry(cs_new<log_entry>(state_->get_term(), std::move(new_conf_buf), log_val_type::conf));
     log_store_->append(entry);
     request_append_entries();
 }
@@ -1307,7 +1307,7 @@ ptr<req_msg> raft_server::create_sync_snapshot_req(peer& p, ulong last_log_idx, 
     ulong offset = p.get_snapshot_sync_ctx()->get_offset();
     int32 sz_left = (int32)(snp->size() - offset);
     int32 blk_sz = get_snapshot_sync_block_size();
-    ptr<buffer> data = buffer::alloc((size_t)(std::min(blk_sz, sz_left)));
+    bufptr data = buffer::alloc((size_t)(std::min(blk_sz, sz_left)));
     int32 sz_rd = state_machine_->read_snapshot_data(*snp, offset, *data);
     if ((size_t)sz_rd < data->size()) {
         l_->err(lstrfmt("only %d bytes could be read from snapshot while %d bytes are expected, must be something wrong, exit.").fmt(sz_rd, data->size()));
@@ -1316,7 +1316,8 @@ ptr<req_msg> raft_server::create_sync_snapshot_req(peer& p, ulong last_log_idx, 
         return ptr<req_msg>();
     }
 
-    std::unique_ptr<snapshot_sync_req> sync_req(new snapshot_sync_req(snp, offset, data, (offset + (ulong)data->size()) >= snp->size()));
+    bool done = (offset + (ulong)data->size()) >= snp->size();
+    std::unique_ptr<snapshot_sync_req> sync_req(new snapshot_sync_req(snp, offset, std::move(data), done));
     ptr<req_msg> req(cs_new<req_msg>(term, msg_type::install_snapshot_request, id_, p.get_id(), snp->get_last_log_term(), snp->get_last_log_idx(), commit_idx));
     req->log_entries().push_back(cs_new<log_entry>(term, sync_req->serialize(), log_val_type::snp_sync_req));
     return req;
@@ -1394,22 +1395,22 @@ void raft_server::commit_in_bg() {
 
 
 ptr<async_result<bool>> raft_server::add_srv(const srv_config& srv) {
-    ptr<buffer> buf(srv.serialize());
-    ptr<log_entry> log(cs_new<log_entry>(0, buf, log_val_type::cluster_server));
+    bufptr buf(srv.serialize());
+    ptr<log_entry> log(cs_new<log_entry>(0, std::move(buf), log_val_type::cluster_server));
     ptr<req_msg> req(cs_new<req_msg>((ulong)0, msg_type::add_server_request, 0, 0, (ulong)0, (ulong)0, (ulong)0));
     req->log_entries().push_back(log);
     return send_msg_to_leader(req);
 }
 
-ptr<async_result<bool>> raft_server::append_entries(const std::vector<ptr<buffer>>& logs) {
+ptr<async_result<bool>> raft_server::append_entries(std::vector<bufptr>& logs) {
     if (logs.size() == 0) {
         bool result(false);
         return cs_new<async_result<bool>>(result);
     }
 
     ptr<req_msg> req(cs_new<req_msg>((ulong)0, msg_type::client_request, 0, 0, (ulong)0, (ulong)0, (ulong)0));
-    for (std::vector<ptr<buffer>>::const_iterator it = logs.begin(); it != logs.end(); ++it) {
-        ptr<log_entry> log(cs_new<log_entry>(0, *it, log_val_type::app_log));
+    for (auto& item : logs) {
+        ptr<log_entry> log(cs_new<log_entry>(0, std::move(item), log_val_type::app_log));
         req->log_entries().push_back(log);
     }
 
@@ -1417,10 +1418,10 @@ ptr<async_result<bool>> raft_server::append_entries(const std::vector<ptr<buffer
 }
 
 ptr<async_result<bool>> raft_server::remove_srv(const int srv_id) {
-    ptr<buffer> buf(buffer::alloc(sz_int));
+    bufptr buf(buffer::alloc(sz_int));
     buf->put(srv_id);
     buf->pos(0);
-    ptr<log_entry> log(cs_new<log_entry>(0, buf, log_val_type::cluster_server));
+    ptr<log_entry> log(cs_new<log_entry>(0, std::move(buf), log_val_type::cluster_server));
     ptr<req_msg> req(cs_new<req_msg>((ulong)0, msg_type::remove_server_request, 0, 0, (ulong)0, (ulong)0, (ulong)0));
     req->log_entries().push_back(log);
     return send_msg_to_leader(req);

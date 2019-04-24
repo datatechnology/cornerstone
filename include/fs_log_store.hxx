@@ -86,7 +86,7 @@ namespace cornerstone {
         * @param cnt
         * @return log pack
         */
-        virtual ptr<buffer> pack(ulong index, int32 cnt);
+        virtual bufptr pack(ulong index, int32 cnt);
 
         /**
         * Apply the log pack to current log store, starting from index
