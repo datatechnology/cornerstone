@@ -2,4 +2,4 @@ language: cpp
 dist: xenial
 compiler:
   - gcc
-script: make -f Makefile.lx test
+script: make -f Makefile.lx testr
