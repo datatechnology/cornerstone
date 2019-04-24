@@ -27,9 +27,9 @@ ptr<snapshot> snapshot::deserialize(buffer& buf) {
     return cs_new<snapshot>(last_log_idx, last_log_term, conf, size);
 }
 
-ptr<buffer> snapshot::serialize() {
-    ptr<buffer> conf_buf = last_config_->serialize();
-    ptr<buffer> buf = buffer::alloc(conf_buf->size() + sz_ulong * 3);
+bufptr snapshot::serialize() {
+    bufptr conf_buf = last_config_->serialize();
+    bufptr buf = buffer::alloc(conf_buf->size() + sz_ulong * 3);
     buf->put(last_log_idx_);
     buf->put(last_log_term_);
     buf->put(size_);

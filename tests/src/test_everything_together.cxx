@@ -165,10 +165,10 @@ void test_raft_server_with_asio() {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     ptr<rpc_client> client(asio_svc_->create_client("tcp://127.0.0.1:9001"));
     ptr<req_msg> msg = cs_new<req_msg>(0, msg_type::client_request, 0, 1, 0, 0, 0);
-    ptr<buffer> buf = buffer::alloc(100);
+    bufptr buf = buffer::alloc(100);
     buf->put("hello");
     buf->pos(0);
-    msg->log_entries().push_back(cs_new<log_entry>(0, buf));
+    msg->log_entries().push_back(cs_new<log_entry>(0, std::move(buf)));
     rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp, const ptr<rpc_exception>& err) -> void {
         if (err) {
             std::cout << err->what() << std::endl;
@@ -179,10 +179,10 @@ void test_raft_server_with_asio() {
         if (!rsp->get_accepted()) {
             client = asio_svc_->create_client(sstrfmt("tcp://127.0.0.1:900%d").fmt(rsp->get_dst()));
             ptr<req_msg> msg = cs_new<req_msg>(0, msg_type::client_request, 0, 1, 0, 0, 0);
-            ptr<buffer> buf = buffer::alloc(100);
+            bufptr buf = buffer::alloc(100);
             buf->put("hello");
             buf->pos(0);
-            msg->log_entries().push_back(cs_new<log_entry>(0, buf));
+            msg->log_entries().push_back(cs_new<log_entry>(0, std::move(buf)));
             rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>& err1) -> void {
                 assert(rsp1->get_accepted());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));

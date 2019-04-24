@@ -135,7 +135,7 @@ namespace cornerstone {
 
         ptr<async_result<bool>> remove_srv(const int srv_id);
 
-        ptr<async_result<bool>> append_entries(const std::vector<ptr<buffer>>& logs);
+        ptr<async_result<bool>> append_entries(std::vector<bufptr>& logs);
 
     private:
         typedef std::unordered_map<int32, ptr<peer>>::const_iterator peer_itor;

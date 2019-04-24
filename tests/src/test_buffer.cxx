@@ -21,11 +21,11 @@
 
 using namespace cornerstone;
 
-static void do_test(ptr<buffer>& buf);
+static void do_test(bufptr& buf);
 
 void test_buffer() {
     
-    ptr<buffer> buf = buffer::alloc(1024);
+    bufptr buf = buffer::alloc(1024);
     assert(buf->size() == 1024);
     do_test(buf);
 
@@ -38,7 +38,7 @@ void test_buffer() {
     do_test(buf);
 }
 
-static void do_test(ptr<buffer>& buf) {
+static void do_test(bufptr& buf) {
     uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine engine(seed);
     std::uniform_int_distribution<int32> distribution(1, 10000);
@@ -63,13 +63,13 @@ static void do_test(ptr<buffer>& buf) {
     buf->put("a string");
     byte b1 = (byte)rnd();
     buf->put(b1);
-    ptr<buffer> buf1(buffer::alloc(100));
+    bufptr buf1(buffer::alloc(100));
     buf1->put("another string");
     buf1->pos(0);
-    ptr<buffer> buf2(buffer::copy(*buf1));
+    bufptr buf2(buffer::copy(*buf1));
     buf->put(*buf1);
     buf->pos(0);
-    ptr<buffer> buf3(buffer::alloc(sz_int * 100));
+    bufptr buf3(buffer::alloc(sz_int * 100));
     buf->get(buf3);
     buf->pos(0);
     for (int i = 0; i < 100; ++i) {
@@ -94,12 +94,12 @@ static void do_test(ptr<buffer>& buf) {
     std::stringstream stream;
     long_val = std::numeric_limits<uint>::max();
     long_val += rnd();
-    ptr<buffer> lbuf(buffer::alloc(sizeof(ulong)));
+    bufptr lbuf(buffer::alloc(sizeof(ulong)));
     lbuf->put(long_val);
     lbuf->pos(0);
     stream << *lbuf;
     stream.seekp(0);
-    ptr<buffer> lbuf1(buffer::alloc(sizeof(ulong)));
+    bufptr lbuf1(buffer::alloc(sizeof(ulong)));
     stream >> *lbuf1;
     ulong long_val_copy = lbuf1->get_ulong();
     assert(long_val == long_val_copy);

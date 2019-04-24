@@ -24,8 +24,8 @@ namespace cornerstone {
     template<typename T>
     using wptr = std::weak_ptr<T>;
 
-    template<typename T>
-    using uptr = std::unique_ptr<T>;
+    template<typename T, typename Deleter = std::default_delete<T>>
+    using uptr = std::unique_ptr<T, Deleter>;
 
     template<typename T, typename ... TArgs>
     inline ptr<T> cs_new(TArgs&&... args) {

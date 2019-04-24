@@ -114,8 +114,9 @@ namespace cornerstone {
 
     class rpc_session : public std::enable_shared_from_this<rpc_session> {
     public:
-        rpc_session(asio::io_service& io, ptr<msg_handler>& handler, ptr<logger>& logger, session_closed_callback& callback)
-            : handler_(handler), socket_(io), log_data_(), header_(buffer::alloc(RPC_REQ_HEADER_SIZE)), l_(logger), callback_(callback) {}
+        template<typename SessionCloseCallback>
+        rpc_session(asio::io_service& io, ptr<msg_handler>& handler, ptr<logger>& logger, SessionCloseCallback&& callback)
+            : handler_(handler), socket_(io), log_data_(buffer::alloc(0)), header_(buffer::alloc(RPC_REQ_HEADER_SIZE)), l_(logger), callback_(std::move(callback)) {}
 
         __nocopy__(rpc_session)
 
@@ -194,9 +195,9 @@ namespace cornerstone {
                         ulong term = log_data_->get_ulong();
                         log_val_type val_type = (log_val_type)log_data_->get_byte();
                         int32 val_size = log_data_->get_int();
-                        ptr<buffer> buf(buffer::alloc((size_t)val_size));
+                        bufptr buf(buffer::alloc((size_t)val_size));
                         log_data_->get(buf);
-                        ptr<log_entry> entry(cs_new<log_entry>(term, buf, val_type));
+                        ptr<log_entry> entry(cs_new<log_entry>(term, std::move(buf), val_type));
                         req->log_entries().push_back(entry);
                     }
                 }
@@ -207,7 +208,7 @@ namespace cornerstone {
                     this->stop();
                 }
                 else {
-                    ptr<buffer> resp_buf(buffer::alloc(RPC_RESP_HEADER_SIZE));
+                    bufptr resp_buf(buffer::alloc(RPC_RESP_HEADER_SIZE));
                     resp_buf->put((byte)resp->get_type());
                     resp_buf->put(resp->get_src());
                     resp_buf->put(resp->get_dst());
@@ -215,7 +216,8 @@ namespace cornerstone {
                     resp_buf->put(resp->get_next_idx());
                     resp_buf->put((byte)resp->get_accepted());
                     resp_buf->pos(0);
-                    asio::async_write(socket_, asio::buffer(resp_buf->data(), RPC_RESP_HEADER_SIZE), [this, self, resp_buf](asio::error_code err_code, size_t) -> void {
+                    auto buffer = asio::buffer(resp_buf->data(), RPC_RESP_HEADER_SIZE);
+                    asio::async_write(socket_, std::move(buffer), [this, self, buf = std::move(resp_buf)](asio::error_code err_code, size_t) -> void {
                         if (!err_code) {
                             this->header_->pos(0);
                             this->start();
@@ -236,8 +238,8 @@ namespace cornerstone {
     private:
         ptr<msg_handler> handler_;
         asio::ip::tcp::socket socket_;
-        ptr<buffer> log_data_;
-        ptr<buffer> header_;
+        bufptr log_data_;
+        bufptr header_;
         ptr<logger> l_;
         session_closed_callback callback_;
     };
@@ -265,8 +267,7 @@ namespace cornerstone {
             }
 
             ptr<asio_rpc_listener> self(this->shared_from_this());
-            session_closed_callback cb = std::bind(&asio_rpc_listener::remove_session, self, std::placeholders::_1);
-            ptr<rpc_session> session(cs_new<rpc_session, asio::io_service&, ptr<msg_handler>&, ptr<logger>&, session_closed_callback&>(io_svc_, handler_, l_, cb));
+            ptr<rpc_session> session(cs_new<rpc_session>(io_svc_, handler_, l_, std::bind(&asio_rpc_listener::remove_session, self, std::placeholders::_1)));
             acceptor_.async_accept(session->socket(), [self, this, session](const asio::error_code& err) -> void {
                 if (!err) {
                     this->l_->debug("receive a incoming rpc connection");
@@ -325,23 +326,23 @@ namespace cornerstone {
                 });
             } else {
                 // serialize req, send and read response
-                std::vector<ptr<buffer>> log_entry_bufs;
+                std::vector<bufptr> log_entry_bufs;
                 int32 log_data_size(0);
                 for (std::vector<ptr<log_entry>>::const_iterator it = req->log_entries().begin();
                     it != req->log_entries().end(); 
                     ++it) {
-                    ptr<buffer> entry_buf(buffer::alloc(8 + 1 + 4 + (*it)->get_buf().size()));
+                    bufptr entry_buf(buffer::alloc(8 + 1 + 4 + (*it)->get_buf().size()));
                     entry_buf->put((*it)->get_term());
                     entry_buf->put((byte)((*it)->get_val_type()));
                     entry_buf->put((int32)(*it)->get_buf().size());
                     (*it)->get_buf().pos(0);
                     entry_buf->put((*it)->get_buf());
                     entry_buf->pos(0);
-                    log_entry_bufs.push_back(entry_buf);
                     log_data_size += (int32)entry_buf->size();
+                    log_entry_bufs.emplace_back(std::move(entry_buf));
                 }
 
-                ptr<buffer> req_buf(buffer::alloc(RPC_REQ_HEADER_SIZE + log_data_size));
+                bufptr req_buf(buffer::alloc(RPC_REQ_HEADER_SIZE + log_data_size));
                 req_buf->put((byte)req->get_type());
                 req_buf->put(req->get_src());
                 req_buf->put(req->get_dst());
@@ -350,14 +351,16 @@ namespace cornerstone {
                 req_buf->put(req->get_last_log_idx());
                 req_buf->put(req->get_commit_idx());
                 req_buf->put(log_data_size);
-                for (std::vector<ptr<buffer>>::const_iterator it = log_entry_bufs.begin();
-                    it != log_entry_bufs.end();
-                    ++it) {
-                    req_buf->put(*(*it));
+                for (auto& item : log_entry_bufs) {
+                    req_buf->put(*item);
                 }
 
                 req_buf->pos(0);
-                asio::async_write(socket_, asio::buffer(req_buf->data(), req_buf->size()), std::bind(&asio_rpc_client::sent, self, req, req_buf, when_done, std::placeholders::_1, std::placeholders::_2));
+                auto buffer = asio::buffer(req_buf->data(), req_buf->size());
+                asio::async_write(socket_, std::move(buffer), [self, req_msg = req, when_done, buf = std::move(req_buf)](std::error_code err, size_t bytes_transferred) mutable -> void
+                {
+                    self->sent(req_msg, buf, when_done, err, bytes_transferred);
+                });
             }
         }
     private:
@@ -372,12 +375,16 @@ namespace cornerstone {
             }
         }
 
-        void sent(ptr<req_msg>& req, ptr<buffer>& buf, rpc_handler& when_done, std::error_code err, size_t bytes_transferred) {
+        void sent(ptr<req_msg>& req, bufptr& buf, rpc_handler& when_done, std::error_code err, size_t bytes_transferred) {
             ptr<asio_rpc_client> self(this->shared_from_this());
             if (!err) {
                 // read a response
-                ptr<buffer> resp_buf(buffer::alloc(RPC_RESP_HEADER_SIZE));
-                asio::async_read(socket_, asio::buffer(resp_buf->data(), resp_buf->size()), std::bind(&asio_rpc_client::response_read, self, req, when_done, resp_buf, std::placeholders::_1, std::placeholders::_2));
+                bufptr resp_buf(buffer::alloc(RPC_RESP_HEADER_SIZE));
+                auto buffer = asio::buffer(resp_buf->data(), resp_buf->size());
+                asio::async_read(socket_, std::move(buffer), [self, req_msg = req, when_done, rbuf = std::move(resp_buf)](std::error_code err, size_t bytes_transferred) mutable -> void
+                {
+                    self->response_read(req_msg, when_done, rbuf, err, bytes_transferred);
+                });
             }
             else {
                 ptr<resp_msg> rsp;
@@ -387,7 +394,7 @@ namespace cornerstone {
             }
         }
 
-        void response_read(ptr<req_msg>& req, rpc_handler& when_done, ptr<buffer>& resp_buf, std::error_code err, size_t bytes_transferred) {
+        void response_read(ptr<req_msg>& req, rpc_handler& when_done, bufptr& resp_buf, std::error_code err, size_t bytes_transferred) {
             if (!err) {
                 byte msg_type_val = resp_buf->get_byte();
                 int32 src = resp_buf->get_int();

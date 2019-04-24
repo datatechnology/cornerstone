@@ -61,7 +61,7 @@ namespace cornerstone {
             return ptr<srv_config>();
         }
 
-        ptr<buffer> serialize();
+        bufptr serialize();
     private:
         ulong log_idx_;
         ulong prev_log_idx_;
