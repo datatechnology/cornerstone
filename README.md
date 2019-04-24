@@ -49,30 +49,30 @@ You most likely should start with test_everything_together.cxx, under test/src f
 Please use nmake to do the job
 
 The following command will build the test project and run all tests
-> nmake -f Makefile.win tests
+```nmake -f Makefile.win tests```
 
 The following command will build the lib file,
-> nmake -f Makefile.win all
+```nmake -f Makefile.win all```
 
 ### On Linux
 
 Please use gc make to do the job
 
 The following command will build the test project and run all tests
-> make -f Makefile.lx test
+```make -f Makefile.lx testr```
 
 The following command will build the lib file,
-> make -f Makefile.lx all
+```make -f Makefile.lx all```
 
 ### On FreeBSD
 
 Please use pmake to do the job
 
 The following command will build the test project and run all tests
-> make -f Makefile.bsd test
+```make -f Makefile.bsd test```
 
 The following command will build the lib file,
-> make -f Makefile.bsd all
+```make -f Makefile.bsd all```
 
 ## Contact Us
 

@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS+=-Wall -O0 -std=c++0x -g -Iasio/asio/include
+CFLAGS+=-Wall -O0 -std=c++14 -g -Iasio/asio/include
 LFLAGS=-pthread
 VPATH=./src/
 
