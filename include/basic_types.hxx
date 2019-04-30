@@ -25,4 +25,7 @@ typedef uint16_t ushort;
 typedef uint32_t uint;
 typedef int32_t int32;
 
+using time_point = std::chrono::high_resolution_clock::time_point;
+using system_clock = std::chrono::high_resolution_clock;
+
 #endif // _BASIC_TYPES_HXX_
