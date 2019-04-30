@@ -199,6 +199,21 @@ ptr<resp_msg> raft_server::handle_vote_req(req_msg& req) {
 }
 
 ptr<resp_msg> raft_server::handle_cli_req(req_msg& req) {
+    // optimization: check leader expiration
+    static volatile ulong time_elasped_since_quorum_resp(std::numeric_limits<ulong>::max());
+    if (role_ == srv_role::leader && peers_.size() > 0 && time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
+        std::vector<time_point> peer_resp_times;
+        for (auto& peer : peers_) {
+            peer_resp_times.push_back(peer.second->get_last_resp());
+        }
+
+        std::sort(peer_resp_times.begin(), peer_resp_times.end());
+        time_elasped_since_quorum_resp = std::chrono::duration_cast<std::chrono::milliseconds>(system_clock::now() - peer_resp_times[peers_.size() / 2]).count();
+        if (time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
+            return cs_new<resp_msg>(state_->get_term(), msg_type::append_entries_response, id_, -1);
+        }
+    }
+
     ptr<resp_msg> resp (cs_new<resp_msg>(state_->get_term(), msg_type::append_entries_response, id_, leader_));
     if (role_ != srv_role::leader) {
         return resp;
@@ -324,6 +339,12 @@ void raft_server::handle_peer_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>
         return;
     }
 
+    // update peer last response time
+    auto peer = peers_.find(resp->get_src());
+    if (peer != peers_.end()) {
+        peer->second->set_last_resp(system_clock::now());
+    }
+
     l_->debug(
         lstrfmt("Receive a %s message from peer %d with Result=%d, Term=%llu, NextIndex=%llu")
         .fmt(__msg_type_str[resp->get_type()], resp->get_src(), resp->get_accepted() ? 1 : 0, resp->get_term(), resp->get_next_idx()));
@@ -371,16 +392,16 @@ void raft_server::handle_append_entries_resp(resp_msg& resp) {
         }
 
         // try to commit with this response
-        // TODO: keep this to save a "new" operation for each response
-        std::unique_ptr<ulong> matched_indexes(new ulong[peers_.size() + 1]);
-        matched_indexes.get()[0] = log_store_->next_slot() - 1;
+        static std::vector<ulong> matched_indexes;
+        matched_indexes.clear();
+        matched_indexes.emplace_back(log_store_->next_slot() - 1);
         int i = 1;
         for (it = peers_.begin(); it != peers_.end(); ++it, ++i) {
-            matched_indexes.get()[i] = it->second->get_matched_idx();
+            matched_indexes.emplace_back(it->second->get_matched_idx());
         }
 
-        std::sort(matched_indexes.get(), matched_indexes.get() + (peers_.size() + 1), std::greater<ulong>());
-        commit(matched_indexes.get()[(peers_.size() + 1) / 2]);
+        std::sort(matched_indexes.begin(), matched_indexes.end(), std::greater<ulong>());
+        commit(matched_indexes[(peers_.size() + 1) / 2]);
         need_to_catchup = p->clear_pending_commit() || resp.get_next_idx() < log_store_->next_slot();
     }
     else {

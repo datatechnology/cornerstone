@@ -31,6 +31,7 @@ namespace cornerstone {
             max_hb_interval_(ctx.params_->max_hb_interval()),
             next_log_idx_(0),
             matched_idx_(0),
+            last_resp_(),
             busy_flag_(false),
             pending_commit_flag_(false),
             hb_enabled_(false),
@@ -98,6 +99,15 @@ namespace cornerstone {
             matched_idx_ = idx;
         }
 
+        const time_point& get_last_resp() const {
+            return last_resp_;
+        }
+
+        template<typename T>
+        void set_last_resp(T&& value) {
+            last_resp_ = std::forward<T>(value);
+        }
+
         void set_pending_commit() {
             pending_commit_flag_.store(true);
         }
@@ -141,6 +151,7 @@ namespace cornerstone {
         int32 max_hb_interval_;
         ulong next_log_idx_;
         ulong matched_idx_;
+        time_point last_resp_;
         std::atomic_bool busy_flag_;
         std::atomic_bool pending_commit_flag_;
         bool hb_enabled_;
