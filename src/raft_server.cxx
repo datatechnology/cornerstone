@@ -200,7 +200,7 @@ ptr<resp_msg> raft_server::handle_vote_req(req_msg& req) {
 
 ptr<resp_msg> raft_server::handle_cli_req(req_msg& req) {
     // optimization: check leader expiration
-    static volatile ulong time_elasped_since_quorum_resp(std::numeric_limits<ulong>::max());
+    static volatile int32 time_elasped_since_quorum_resp(std::numeric_limits<int32>::max());
     if (role_ == srv_role::leader && peers_.size() > 0 && time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
         std::vector<time_point> peer_resp_times;
         for (auto& peer : peers_) {
@@ -208,7 +208,7 @@ ptr<resp_msg> raft_server::handle_cli_req(req_msg& req) {
         }
 
         std::sort(peer_resp_times.begin(), peer_resp_times.end());
-        time_elasped_since_quorum_resp = std::chrono::duration_cast<std::chrono::milliseconds>(system_clock::now() - peer_resp_times[peers_.size() / 2]).count();
+        time_elasped_since_quorum_resp = static_cast<int32>(std::chrono::duration_cast<std::chrono::milliseconds>(system_clock::now() - peer_resp_times[peers_.size() / 2]).count());
         if (time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
             return cs_new<resp_msg>(state_->get_term(), msg_type::append_entries_response, id_, -1);
         }
