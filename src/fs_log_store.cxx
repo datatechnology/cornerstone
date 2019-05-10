@@ -70,113 +70,66 @@ int truncate(const char* path, ulong new_size) {
 using namespace cornerstone;
 ptr<log_entry> empty_entry(cs_new<log_entry>(0, buffer::alloc(0), log_val_type::app_log));
 
-class cornerstone::log_store_buffer {
-public:
-    typedef std::vector<ptr<log_entry>>::const_iterator const_buf_itor;
-    typedef std::vector<ptr<log_entry>>::iterator buf_itor;
-public:
-    log_store_buffer(ulong start_idx, int32 max_size)
-        : buf_(), lock_(), start_idx_(start_idx), max_size_(max_size) {
-    }
 
-    ulong last_idx() {
-        recur_lock(lock_);
-        return start_idx_ + buf_.size();
-    }
-
-    ulong first_idx() {
-        recur_lock(lock_);
-        return start_idx_;
-    }
-
-    ptr<log_entry> last_entry() {
-        recur_lock(lock_);
-        if (buf_.size() > 0) {
-            return buf_[buf_.size() - 1];
-        }
-
+ptr<log_entry> log_store_buffer::operator[](ulong idx) {
+    read_lock(lock_);
+    size_t idx_within_buf = static_cast<size_t>(idx - start_idx_);
+    if (idx_within_buf >= buf_.size() || idx < start_idx_) {
         return ptr<log_entry>();
     }
 
-    ptr<log_entry> operator[](ulong idx) {
-        recur_lock(lock_);
-        size_t idx_within_buf = static_cast<size_t>(idx - start_idx_);
-        if (idx_within_buf >= buf_.size() || idx < start_idx_) {
-            return ptr<log_entry>();
-        }
+    return buf_[idx_within_buf];
+}
 
-        return buf_[idx_within_buf];
-    }
-
-    // [start, end), returns the start_idx_;
-    ulong fill(ulong start, ulong end, std::vector<ptr<log_entry>>& result) {
-        recur_lock(lock_);
-        if (end < start_idx_) {
-            return start_idx_;
-        }
-
-        int offset = static_cast<int>(start - start_idx_);
-        if (offset > 0) {
-            for (int i = 0; i < static_cast<int>(end - start); ++i, ++offset) {
-                result.push_back(buf_[offset]);
-            }
-        }
-        else {
-            offset *= -1;
-            for (int i = 0; i < offset; ++i) {
-                result.push_back(ptr<log_entry>()); // make room for items that doesn't found in the buffer
-            }
-
-            for (int i = 0; i < static_cast<int>(end - start_idx_); ++i, ++offset) {
-                result.push_back(buf_[i]);
-            }
-        }
-
+// [start, end), returns the start_idx_;
+ulong log_store_buffer::fill(ulong start, ulong end, std::vector<ptr<log_entry>>& result) {
+    read_lock(lock_);
+    if (end < start_idx_) {
         return start_idx_;
     }
 
-    ulong get_term(ulong index) {
-        recur_lock(lock_);
-        if (index < start_idx_ || index >= start_idx_ + buf_.size()) {
-            return 0;
+    int offset = static_cast<int>(start - start_idx_);
+    if (offset > 0) {
+        for (int i = 0; i < static_cast<int>(end - start); ++i) {
+            result.emplace_back(buf_[offset + i]);
         }
-
-        return buf_[static_cast<int>(index - start_idx_)]->get_term();
     }
-
-    // trimming the buffer [start, end)
-    void trim(ulong start) {
-        recur_lock(lock_);
-        if (start < start_idx_) {
-            return;
+    else {
+        offset *= -1;
+        for (int i = 0; i < offset; ++i) {
+            result.emplace_back(ptr<log_entry>()); // make room for items that doesn't found in the buffer
         }
 
-        size_t index = static_cast<size_t>(start - start_idx_);
-        if (index < buf_.size()) {
-            buf_.erase(buf_.begin() + index, buf_.end());
+        for (int i = 0; i < static_cast<int>(end - start_idx_); ++i) {
+            result.emplace_back(buf_[i]);
         }
     }
 
-    void append(ptr<log_entry>& entry) {
-        recur_lock(lock_);
-        buf_.push_back(entry);
-        if ((size_t)max_size_ < buf_.size()) {
-            buf_.erase(buf_.begin());
-            start_idx_ += 1;
-        }
+    return start_idx_;
+}
+
+// trimming the buffer [start, end)
+void log_store_buffer::trim(ulong start) {
+    write_lock(lock_);
+    if (start < start_idx_) {
+        return;
     }
 
-    void reset(ulong start_idx) {
-        recur_lock(lock_);
-        buf_.clear();
-        start_idx_ = start_idx;
+    size_t index = static_cast<size_t>(start - start_idx_);
+    if (index < buf_.size()) {
+        buf_.erase(buf_.begin() + index, buf_.end());
     }
-private:
-    std::vector<ptr<log_entry>> buf_;
-    std::recursive_mutex lock_;
-    ulong start_idx_;
-    int32 max_size_;
-};
+}
+
+void log_store_buffer::append(ptr<log_entry>& entry) {
+    write_lock(lock_);
+    buf_.emplace_back(entry);
+    if ((size_t)max_size_ < buf_.size()) {
+        buf_.erase(buf_.begin());
+        start_idx_ += 1;
+    }
+}
+
 
 fs_log_store::~fs_log_store() {
     recur_lock(store_lock_);
@@ -190,10 +143,6 @@ fs_log_store::~fs_log_store() {
 
     if (start_idx_file_) {
         start_idx_file_.close();
-    }
-
-    if (buf_ != nilptr) {
-        delete buf_;
     }
 }
 
@@ -256,7 +205,7 @@ fs_log_store::fs_log_store(const std::string& log_folder, int buf_size)
         start_idx_file_.flush();
     }
 
-    buf_ = new log_store_buffer(entries_in_store_ > (size_t)buf_size_ ? entries_in_store_ - buf_size_ + start_idx_ : start_idx_, buf_size_);
+    buf_ = std::make_unique<log_store_buffer>(entries_in_store_ > (size_t)buf_size_ ? entries_in_store_ - buf_size_ + start_idx_ : start_idx_, buf_size_);
     fill_buffer();
 }
 

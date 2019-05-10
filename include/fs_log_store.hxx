@@ -19,7 +19,65 @@
 #define _FS_LOG_STORE_HXX_
 
 namespace cornerstone {
-    class log_store_buffer;
+    class log_store_buffer {
+    public:
+        using const_buf_itor = std::vector<ptr<log_entry>>::const_iterator;
+        using buf_itor = std::vector<ptr<log_entry>>::iterator;
+    public:
+        log_store_buffer(ulong start_idx, int32 max_size)
+            : buf_(), lock_(), start_idx_(start_idx), max_size_(max_size) {
+        }
+
+        inline ulong last_idx() {
+            read_lock(lock_);
+            return start_idx_ + buf_.size();
+        }
+
+        inline ulong first_idx() {
+            read_lock(lock_);
+            return start_idx_;
+        }
+
+        inline ptr<log_entry> last_entry() {
+            read_lock(lock_);
+            if (buf_.size() > 0) {
+                return buf_[buf_.size() - 1];
+            }
+
+            return ptr<log_entry>();
+        }
+
+        ptr<log_entry> operator[](ulong idx);
+
+        // [start, end), returns the start_idx_;
+        ulong fill(ulong start, ulong end, std::vector<ptr<log_entry>>& result);
+
+        inline ulong get_term(ulong index) {
+            read_lock(lock_);
+            if (index < start_idx_ || index >= start_idx_ + buf_.size()) {
+                return 0;
+            }
+
+            return buf_[static_cast<int>(index - start_idx_)]->get_term();
+        }
+
+        // trimming the buffer [start, end)
+        void trim(ulong start);
+
+        void append(ptr<log_entry>& entry);
+
+        inline void reset(ulong start_idx) {
+            write_lock(lock_);
+            buf_.clear();
+            start_idx_ = start_idx;
+        }
+    private:
+        std::vector<ptr<log_entry>> buf_;
+        std::shared_mutex lock_;
+        volatile ulong start_idx_;
+        volatile int32 max_size_;
+    };
+
     class fs_log_store : public log_store {
     public:
         fs_log_store(const std::string& log_folder, int buf_size = -1);
@@ -113,7 +171,7 @@ namespace cornerstone {
         ulong start_idx_;
         std::string log_folder_;
         mutable std::recursive_mutex store_lock_;
-        log_store_buffer* buf_;
+        std::unique_ptr<log_store_buffer> buf_;
         int buf_size_;
     };
 }
