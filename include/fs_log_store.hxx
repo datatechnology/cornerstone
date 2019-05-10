@@ -73,7 +73,7 @@ namespace cornerstone {
         }
     private:
         std::vector<ptr<log_entry>> buf_;
-        std::shared_mutex lock_;
+        std::shared_timed_mutex lock_;
         volatile ulong start_idx_;
         volatile int32 max_size_;
     };
