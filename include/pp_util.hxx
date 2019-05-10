@@ -33,6 +33,8 @@
 
 #define auto_lock(lock) std::lock_guard<std::mutex> guard(lock)
 #define recur_lock(lock) std::lock_guard<std::recursive_mutex> guard(lock)
+#define read_lock(lock) std::shared_lock<std::shared_timed_mutex> rlock(lock)
+#define write_lock(lock) std::lock_guard<std::shared_timed_mutex> wlock(lock)
 
 #define sz_int sizeof(int32)
 #define sz_ulong sizeof(ulong)

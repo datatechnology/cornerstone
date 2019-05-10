@@ -28,6 +28,7 @@
 #include <string>
 #include <functional>
 #include <mutex>
+#include <shared_mutex>
 #include <condition_variable>
 #include <exception>
 #include <atomic>
