@@ -93,8 +93,7 @@ static bool entry_equals(log_entry& entry1, log_entry& entry2) {
 }
 
 void test_log_store() {
-    uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine engine(seed);
+    std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
     std::function<int32()> rnd = std::bind(distribution, engine);
 
@@ -172,8 +171,7 @@ void test_log_store() {
 }
 
 void test_log_store_buffer() {
-    uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine engine(seed);
+    std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
     std::function<int32()> rnd = std::bind(distribution, engine);
 
@@ -199,8 +197,7 @@ void test_log_store_buffer() {
 }
 
 void test_log_store_pack() {
-    uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine engine(seed);
+    std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
     std::function<int32()> rnd = std::bind(distribution, engine);
 
@@ -239,8 +236,7 @@ void test_log_store_pack() {
 }
 
 void test_log_store_compact_all() {
-    uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine engine(seed);
+    std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
     std::function<int32()> rnd = std::bind(distribution, engine);
     
@@ -280,8 +276,7 @@ void test_log_store_compact_all() {
 }
 
 void test_log_store_compact_random() {
-    uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine engine(seed);
+    std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
     std::function<int32()> rnd = std::bind(distribution, engine);
 

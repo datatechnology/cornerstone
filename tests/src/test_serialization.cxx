@@ -26,8 +26,7 @@ ulong long_val(int val) {
 }
 
 void test_serialization() {
-    uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine engine(seed);
+    std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
     auto rnd = std::bind(distribution, engine);
 
