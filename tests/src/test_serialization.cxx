@@ -28,7 +28,9 @@ ulong long_val(int val) {
 void test_serialization() {
     std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    auto rnd = std::bind(distribution, engine);
+    auto rnd = [&distribution, &engine]() -> int32_t {
+        return distribution(engine);
+    };
 
     ptr<srv_config> srv_conf(cs_new<srv_config>(rnd(), sstrfmt("server %d").fmt(rnd())));
     bufptr srv_conf_buf(srv_conf->serialize());

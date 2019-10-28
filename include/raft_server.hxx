@@ -59,7 +59,10 @@ namespace cornerstone {
             voted_servers_() {
             std::random_device engine;
             std::uniform_int_distribution<int32> distribution(ctx->params_->election_timeout_lower_bound_, ctx->params_->election_timeout_upper_bound_);
-            rand_timeout_ = std::bind(distribution, engine);
+            rand_timeout_ = [&distribution, &engine]() -> int32_t {
+                return distribution(engine);
+            };
+
             if (!state_) {
                 state_ = cs_new<srv_state>();
                 state_->set_term(0);

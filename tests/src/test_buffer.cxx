@@ -41,7 +41,9 @@ void test_buffer() {
 static void do_test(bufptr& buf) {
     std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    auto rnd = std::bind(distribution, engine);
+    auto rnd = [&distribution, &engine]() -> int32_t {
+        return distribution(engine);
+    };
 
     // store int32 values into buffer
     std::vector<int32> vals;
