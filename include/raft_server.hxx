@@ -57,10 +57,12 @@ namespace cornerstone {
             ex_resp_handler_((rpc_handler)std::bind(&raft_server::handle_ext_resp, this, std::placeholders::_1, std::placeholders::_2)), 
             last_snapshot_(ctx->state_machine_->last_snapshot()),
             voted_servers_() {
-            uint seed = (uint)(std::chrono::system_clock::now().time_since_epoch().count() * id_);
-            std::default_random_engine engine(seed);
+            std::random_device engine;
             std::uniform_int_distribution<int32> distribution(ctx->params_->election_timeout_lower_bound_, ctx->params_->election_timeout_upper_bound_);
-            rand_timeout_ = std::bind(distribution, engine);
+            rand_timeout_ = [&distribution, &engine]() -> int32_t {
+                return distribution(engine);
+            };
+
             if (!state_) {
                 state_ = cs_new<srv_state>();
                 state_->set_term(0);

@@ -26,10 +26,11 @@ ulong long_val(int val) {
 }
 
 void test_serialization() {
-    uint seed = (uint)std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine engine(seed);
+    std::random_device engine;
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    auto rnd = std::bind(distribution, engine);
+    auto rnd = [&distribution, &engine]() -> int32_t {
+        return distribution(engine);
+    };
 
     ptr<srv_config> srv_conf(cs_new<srv_config>(rnd(), sstrfmt("server %d").fmt(rnd())));
     bufptr srv_conf_buf(srv_conf->serialize());
