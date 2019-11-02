@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS+=-Wall -O0 -std=c++0x -g -D_GLIBCXX_USE_NANOSLEEP -I../asio/asio/include -DOS_FREEBSD=1
+CFLAGS+=-Wall -O0 -std=c++17 -g -D_GLIBCXX_USE_NANOSLEEP -I../asio/asio/include -DOS_FREEBSD=1
 LFLAGS=-pthread 
 VPATH=../src/:./src/
 

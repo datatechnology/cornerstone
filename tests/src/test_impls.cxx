@@ -357,7 +357,7 @@ public:
         t.detach();
     }
 
-    virtual void stop() {
+    virtual void stop() override {
         stopped_ = true;
         queue_.enqueue(std::make_pair(ptr<req_msg>(), ptr<async_result<ptr<resp_msg>>>()));
         std::unique_lock<std::mutex> lock(stop_lock_);
@@ -423,7 +423,7 @@ void test_raft_server() {
             buf->put("hello");
             buf->pos(0);
             msg->log_entries().push_back(cs_new<log_entry>(0, std::move(buf)));
-            rpc_handler handler = (rpc_handler)([&client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>& err1) -> void {
+            rpc_handler handler = (rpc_handler)([client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>& err1) -> void {
                 assert(rsp1->get_accepted());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 stop_test_cv.notify_all();

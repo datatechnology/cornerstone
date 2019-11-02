@@ -93,9 +93,10 @@ static bool entry_equals(log_entry& entry1, log_entry& entry2) {
 }
 
 void test_log_store() {
-    std::random_device engine;
+    std::random_device rd;
+    std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [&distribution, &engine]() -> int32_t {
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
         return distribution(engine);
     };
 
@@ -173,9 +174,10 @@ void test_log_store() {
 }
 
 void test_log_store_buffer() {
-    std::random_device engine;
+    std::random_device rd;
+    std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [&distribution, &engine]() -> int32_t {
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
         return distribution(engine);
     };
 
@@ -201,9 +203,10 @@ void test_log_store_buffer() {
 }
 
 void test_log_store_pack() {
-    std::random_device engine;
+    std::random_device rd;
+    std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [&distribution, &engine]() -> int32_t {
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
         return distribution(engine);
     };
 
@@ -242,9 +245,10 @@ void test_log_store_pack() {
 }
 
 void test_log_store_compact_all() {
-    std::random_device engine;
+    std::random_device rd;
+    std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [&distribution, &engine]() -> int32_t {
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
         return distribution(engine);
     };
 
@@ -284,9 +288,10 @@ void test_log_store_compact_all() {
 }
 
 void test_log_store_compact_random() {
-    std::random_device engine;
+    std::random_device rd;
+    std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [&distribution, &engine]() -> int32_t {
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
         return distribution(engine);
     };
 
