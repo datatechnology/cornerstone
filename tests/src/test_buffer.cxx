@@ -39,9 +39,10 @@ void test_buffer() {
 }
 
 static void do_test(bufptr& buf) {
-    std::random_device engine;
+    std::random_device rd;
+    std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    auto rnd = [&distribution, &engine]() -> int32_t {
+    auto rnd = [distribution, engine]() mutable -> int32_t {
         return distribution(engine);
     };
 
