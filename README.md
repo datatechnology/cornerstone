@@ -9,7 +9,8 @@ To respect Andy Chen's work, we keep using **cornerstone** as the project's name
 
 **Don't put fs_log_store into production, it's for demo and algorithm verification only**
 
-**This project got used for the work of https://arxiv.org/pdf/1808.05698.pdf**
+## Users
+ 1. [NuRaft](https://github.com/eBay/NuRaft)
 
 ## Features
 - [x] Core algorithm, implemented based on TLA+ spec (though the spec does not have timer module)
