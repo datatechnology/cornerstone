@@ -26,21 +26,16 @@ void peer::send_req(ptr<req_msg>& req, rpc_handler& handler) {
 }
 
 void peer::handle_rpc_result(ptr<req_msg>& req, ptr<rpc_result>& pending_result, ptr<resp_msg>& resp, const ptr<rpc_exception>& err) {
-    if (err == nilptr) {
-        if (req->get_type() == msg_type::append_entries_request ||
-            req->get_type() == msg_type::install_snapshot_request) {
-            set_free();
-        }
+    if (req->get_type() == msg_type::append_entries_request ||
+        req->get_type() == msg_type::install_snapshot_request) {
+        set_free();
+    }
 
+    if (err == nilptr) {
         resume_hb_speed();
         pending_result->set_result(resp, ptr<rpc_exception>());
     }
     else {
-        if (req->get_type() == msg_type::append_entries_request ||
-            req->get_type() == msg_type::install_snapshot_request) {
-            set_free();
-        }
-
         slow_down_hb();
         pending_result->set_result(ptr<resp_msg>(), err);
     }
