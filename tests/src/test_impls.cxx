@@ -196,12 +196,12 @@ private:
 
 class dummy_state_machine : public state_machine {
 public:
-    virtual void commit(const ulong, buffer& data) {
+    virtual void commit(const ulong, buffer& data, const uptr<log_entry_cookie>&) {
         std::cout << "commit message:" << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
-    virtual void pre_commit(const ulong, buffer&) {}
-    virtual void rollback(const ulong, buffer&) {}
+    virtual void pre_commit(const ulong, buffer&, const uptr<log_entry_cookie>&) {}
+    virtual void rollback(const ulong, buffer&, const uptr<log_entry_cookie>&) {}
     virtual void save_snapshot_data(snapshot&, const ulong, buffer&) {}
     virtual bool apply_snapshot(snapshot&) {
         return false;

@@ -115,17 +115,17 @@ class echo_state_machine : public state_machine {
 public:
     echo_state_machine() : lock_() {}
 public:
-    virtual void commit(const ulong, buffer& data) {
+    virtual void commit(const ulong, buffer& data, const uptr<log_entry_cookie>&) {
         auto_lock(lock_);
         std::cout << "commit message:" << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
-    virtual void pre_commit(const ulong, buffer& data) {
+    virtual void pre_commit(const ulong, buffer& data, const uptr<log_entry_cookie>&) {
         auto_lock(lock_);
         std::cout << "pre-commit: " << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
-    virtual void rollback(const ulong, buffer& data) {
+    virtual void rollback(const ulong, buffer& data, const uptr<log_entry_cookie>&) {
         auto_lock(lock_);
         std::cout << "rollback: " << reinterpret_cast<const char*>(data.data()) << std::endl;
     }

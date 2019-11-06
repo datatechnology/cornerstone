@@ -17,11 +17,37 @@
 
 #ifndef _LOG_ENTRY_HXX_
 #define _LOG_ENTRY_HXX_
+
 namespace cornerstone{
+    //
+    // log_entry_cookie, which is used to store an in memory object for log entry.
+    // which could be the command for state machine so that when state machine on
+    // leader node is trying to commit the log entry, it does not need to deserialize
+    // the command from the log entry again.
+    //
+    class log_entry_cookie {
+    public:
+        log_entry_cookie(uint tag, const ptr<void>& value)
+            : tag_(tag), value_(value) {
+            }
+        
+        const ptr<void>& value() const {
+            return value_;
+        }
+
+        uint tag() const {
+            return tag_;
+        }
+
+    private:
+        uint tag_;
+        ptr<void> value_;
+    };
+
     class log_entry{
     public:
         log_entry(ulong term, bufptr&& buff, log_val_type value_type = log_val_type::app_log)
-            : term_(term), value_type_(value_type), buff_(std::move(buff)) {
+            : term_(term), value_type_(value_type), buff_(std::move(buff)), cookie_() {
         }
 
     __nocopy__(log_entry)
@@ -46,6 +72,14 @@ namespace cornerstone{
             }
 
             return *buff_;
+        }
+
+        void set_cookie(uint tag, const ptr<void>& value) {
+            cookie_ = std::make_unique<log_entry_cookie>(tag, value);
+        }
+
+        const uptr<log_entry_cookie>& get_cookie() const {
+            return cookie_;
         }
 
         bufptr serialize() {
@@ -75,6 +109,7 @@ namespace cornerstone{
         ulong term_;
         log_val_type value_type_;
         bufptr buff_;
+        uptr<log_entry_cookie> cookie_;
     };
 }
 #endif //_LOG_ENTRY_HXX_
