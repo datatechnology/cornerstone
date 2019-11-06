@@ -5,7 +5,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CheckIPOSupported)
 
-option(BUILD_TESTS "Build unit testr" ON)
+option(BUILD_TESTS "Build unit tests" ON)
 
 add_definitions(-DASIO_STANDALONE)
 add_definitions(-DASIO_HAS_STD_CHRONO)

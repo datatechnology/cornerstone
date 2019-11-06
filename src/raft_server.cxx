@@ -142,7 +142,7 @@ ptr<resp_msg> raft_server::handle_append_entries(req_msg& req) {
         while (idx < log_store_->next_slot() && log_idx < req.log_entries().size()) {
             ptr<log_entry> old_entry(log_store_->entry_at(idx));
             if (old_entry->get_val_type() == log_val_type::app_log) {
-                state_machine_->rollback(idx, old_entry->get_buf());
+                state_machine_->rollback(idx, old_entry->get_buf(), old_entry->get_cookie());
             }
             else if (old_entry->get_val_type() == log_val_type::conf) {
                 l_->info(sstrfmt("revert from a prev config change to config at %llu").fmt(config_->get_log_idx()));
@@ -152,7 +152,7 @@ ptr<resp_msg> raft_server::handle_append_entries(req_msg& req) {
             ptr<log_entry> entry = req.log_entries().at(log_idx);
             log_store_->write_at(idx, entry);
             if (entry->get_val_type() == log_val_type::app_log) {
-                state_machine_->pre_commit(idx, entry->get_buf());
+                state_machine_->pre_commit(idx, entry->get_buf(), entry->get_cookie());
             }
             else if(entry->get_val_type() == log_val_type::conf) {
                 l_->info(sstrfmt("receive a config change from leader at %llu").fmt(idx));
@@ -172,7 +172,7 @@ ptr<resp_msg> raft_server::handle_append_entries(req_msg& req) {
                 config_changing_ = true;
             }
             else if(entry->get_val_type() == log_val_type::app_log) {
-                state_machine_->pre_commit(idx_for_entry, entry->get_buf());
+                state_machine_->pre_commit(idx_for_entry, entry->get_buf(), entry->get_cookie());
             }
         }
     }
@@ -225,7 +225,7 @@ ptr<resp_msg> raft_server::handle_cli_req(req_msg& req) {
         entries.at(i)->set_term(state_->get_term());
 
         log_store_->append(entries.at(i));
-        state_machine_->pre_commit(log_store_->next_slot() - 1, entries.at(i)->get_buf());
+        state_machine_->pre_commit(log_store_->next_slot() - 1, entries.at(i)->get_buf(), entries.at(i)->get_cookie());
     }
 
     // urgent commit, so that the commit will not depend on hb
@@ -1386,7 +1386,7 @@ void raft_server::commit_in_bg() {
                 sm_commit_index_ += 1;
                 ptr<log_entry> log_entry(log_store_->entry_at(sm_commit_index_));
                 if (log_entry->get_val_type() == log_val_type::app_log) {
-                    state_machine_->commit(sm_commit_index_, log_entry->get_buf());
+                    state_machine_->commit(sm_commit_index_, log_entry->get_buf(), log_entry->get_cookie());
                 } else if (log_entry->get_val_type() == log_val_type::conf) {
                     recur_lock(lock_);
                     log_entry->get_buf().pos(0);
