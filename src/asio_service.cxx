@@ -167,7 +167,7 @@ namespace cornerstone {
         }
 
     private:
-        void read_log_data(const asio::error_code& err, size_t bytes_read) {
+        void read_log_data(const asio::error_code& err, size_t /* bytes_read */) {
             if (!err) {
                 this->read_complete();
             }
@@ -364,7 +364,7 @@ namespace cornerstone {
             }
         }
     private:
-        void connected(ptr<req_msg>& req, rpc_handler& when_done, std::error_code err, asio::ip::tcp::resolver::iterator itor) {
+        void connected(ptr<req_msg>& req, rpc_handler& when_done, std::error_code err, asio::ip::tcp::resolver::iterator /* itor */) {
             if (!err) {
                 this->send(req, when_done);
             }
@@ -375,7 +375,7 @@ namespace cornerstone {
             }
         }
 
-        void sent(ptr<req_msg>& req, bufptr& buf, rpc_handler& when_done, std::error_code err, size_t bytes_transferred) {
+        void sent(ptr<req_msg>& req, bufptr& /* buf */, rpc_handler& when_done, std::error_code err, size_t /* bytes_transferred */) {
             ptr<asio_rpc_client> self(this->shared_from_this());
             if (!err) {
                 // read a response
@@ -394,7 +394,7 @@ namespace cornerstone {
             }
         }
 
-        void response_read(ptr<req_msg>& req, rpc_handler& when_done, bufptr& resp_buf, std::error_code err, size_t bytes_transferred) {
+        void response_read(ptr<req_msg>& req, rpc_handler& when_done, bufptr& resp_buf, std::error_code err, size_t /* bytes_transferred */) {
             if (!err) {
                 byte msg_type_val = resp_buf->get_byte();
                 int32 src = resp_buf->get_int();
@@ -466,7 +466,7 @@ void asio_service_impl::worker_entry() {
     }
 }
 
-void asio_service_impl::flush_all_loggers(asio::error_code err) {
+void asio_service_impl::flush_all_loggers(asio::error_code /* err */) {
     if (continue_.load() == 1) {
         log_flush_tm_.expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::hours(1000)));
         log_flush_tm_.async_wait(std::bind(&asio_service_impl::flush_all_loggers, this, std::placeholders::_1));

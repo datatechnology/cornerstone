@@ -84,7 +84,7 @@ void test_async_result() {
         ptr<std::exception> ex = cs_new<std::bad_exception>();
         ptr<async_result<int>> presult(create_and_set_async_result(200, 496, ex));
         bool handler_called = false;
-        presult->when_ready([&handler_called, ex](int val, const ptr<std::exception>& e) -> void {
+        presult->when_ready([&handler_called, ex](int, const ptr<std::exception>& e) -> void {
             assert(ex == e);
             handler_called = true;
             });
