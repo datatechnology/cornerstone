@@ -61,8 +61,8 @@ public:
         return conf;
     }
 
-    virtual void save_config(const cluster_config& config) {}
-    virtual void save_state(const srv_state& state) {}
+    virtual void save_config(const cluster_config&) {}
+    virtual void save_state(const srv_state&) {}
     virtual ptr<srv_state> read_state() {
         return cs_new<srv_state>();
     }
@@ -115,27 +115,27 @@ class echo_state_machine : public state_machine {
 public:
     echo_state_machine() : lock_() {}
 public:
-    virtual void commit(const ulong log_idx, buffer& data) {
+    virtual void commit(const ulong, buffer& data) {
         auto_lock(lock_);
         std::cout << "commit message:" << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
-    virtual void pre_commit(const ulong log_idx, buffer& data) {
+    virtual void pre_commit(const ulong, buffer& data) {
         auto_lock(lock_);
         std::cout << "pre-commit: " << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
-    virtual void rollback(const ulong log_idx, buffer& data) {
+    virtual void rollback(const ulong, buffer& data) {
         auto_lock(lock_);
         std::cout << "rollback: " << reinterpret_cast<const char*>(data.data()) << std::endl;
     }
 
-    virtual void save_snapshot_data(snapshot& s, const ulong offset, buffer& data) {}
-    virtual bool apply_snapshot(snapshot& s) {
+    virtual void save_snapshot_data(snapshot&, const ulong, buffer&) {}
+    virtual bool apply_snapshot(snapshot&) {
         return false;
     }
 
-    virtual int read_snapshot_data(snapshot& s, const ulong offset, buffer& data) {
+    virtual int read_snapshot_data(snapshot& , const ulong, buffer&) {
         return 0;
     }
 
@@ -147,7 +147,7 @@ public:
         return ptr<snapshot>();
     }
 
-    virtual void create_snapshot(snapshot& s, async_result<bool>::handler_type& when_done) {}
+    virtual void create_snapshot(snapshot&, async_result<bool>::handler_type&) {}
 private:
     std::mutex lock_;
 };
@@ -183,7 +183,7 @@ void test_raft_server_with_asio() {
             buf->put("hello");
             buf->pos(0);
             msg->log_entries().push_back(cs_new<log_entry>(0, std::move(buf)));
-            rpc_handler handler = (rpc_handler)([client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>& err1) -> void {
+            rpc_handler handler = (rpc_handler)([client](ptr<resp_msg>& rsp1, const ptr<rpc_exception>&) -> void {
                 assert(rsp1->get_accepted());
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 stop_test_cv1.notify_all();

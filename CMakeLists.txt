@@ -5,7 +5,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CheckIPOSupported)
 
-option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_TESTS "Build unit testr" ON)
 
 add_definitions(-DASIO_STANDALONE)
 add_definitions(-DASIO_HAS_STD_CHRONO)
@@ -105,11 +105,11 @@ add_library(cornerstone::cornerstone ALIAS cornerstone)
 
 if (BUILD_TESTS)
     enable_testing()
-    add_executable(tests
+    add_executable(testr
             ${TEST_SOURCE_FILES}
             ${HEADER_FILES})
 
-    add_test(NAME tests COMMAND $<TARGET_FILE:tests>)
+    add_test(NAME testr COMMAND $<TARGET_FILE:testr>)
 endif (BUILD_TESTS)
 
 target_link_libraries(cornerstone
@@ -118,7 +118,7 @@ target_link_libraries(cornerstone
         )
 
 if (BUILD_TESTS)
-    target_link_libraries(tests
+    target_link_libraries(testr
             cornerstone)
 endif (BUILD_TESTS)
 
@@ -130,13 +130,13 @@ target_include_directories(cornerstone PUBLIC
         PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/asio/asio/include)
 
 if (BUILD_TESTS)
-    target_include_directories(tests PUBLIC
+    target_include_directories(testr PUBLIC
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/asio/asio/include)
 endif (BUILD_TESTS)
 
 set(PUBLIC_COMPILE_FEATURES
-        cxx_std_11
+        cxx_std_17
         cxx_override
         cxx_nullptr)
 
@@ -144,7 +144,7 @@ target_compile_features(cornerstone
         PUBLIC ${PUBLIC_COMPILE_FEATURES})
 
 if (BUILD_TESTS)
-    target_compile_features(tests
+    target_compile_features(testr
             PUBLIC ${PUBLIC_COMPILE_FEATURES})
 endif (BUILD_TESTS)
 
@@ -199,6 +199,6 @@ find_program(CCACHE_FOUND "ccache")
 if(CCACHE_FOUND)
     set_property(TARGET cornerstone PROPERTY RULE_LAUNCH_COMPILE ccache)
     if(BUILD_TESTS)
-        set_property(TARGET tests PROPERTY RULE_LAUNCH_LINK ccache)
+        set_property(TARGET testr PROPERTY RULE_LAUNCH_LINK ccache)
     endif(BUILD_TESTS)
 endif(CCACHE_FOUND)

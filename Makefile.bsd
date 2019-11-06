@@ -1,5 +1,5 @@
 CC=c++
-CFLAGS=-std=c++0x -O0 -Wall -Iasio/asio/include -g -DOS_FREEBSD
+CFLAGS=-std=c++17 -O0 -Wall -Iasio/asio/include -g -DOS_FREEBSD
 LFLAGS=-lpthread
 .PATH.o		: debug/obj/
 .PATH.cxx	: src/
@@ -9,7 +9,7 @@ LFLAGS=-lpthread
 	$(CC) $(CFLAGS) -c $(.IMPSRC)
 OBJS=buffer.o asio_service.o cluster_config.o peer.o snapshot.o srv_config.o fs_log_store.o raft_server.o snapshot_sync_req.o
 asio/asio/include/asio.hpp:
-	@if [ ! -d "asio" ]; then git clone https://github.com/chriskohlhoff/asio.git ; fi;
+	@if [ ! -d "asio/asio" ]; then git clone https://github.com/chriskohlhoff/asio.git ; fi;
 
 test:	asio/asio/include/asio.hpp
 	@cd tests && make -f Makefile.bsd testr && ./debug/testr
