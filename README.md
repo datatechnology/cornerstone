@@ -1,4 +1,4 @@
-**This project will be proactively monitored and update again**
+![Build Status](https://travis-ci.org/datatechnology/cornerstone.svg?branch=master)
 
 # cornerstone
 A very lightweight but complete Raft Consensus C++ implementation, the original implementation was published by [Andy Chen] (https://github.com/andy-yx-chen), as he agrees,  we re-organize his source code, and republish under the same license.
