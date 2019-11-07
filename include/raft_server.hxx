@@ -33,7 +33,24 @@ namespace cornerstone {
 
         ptr<async_result<bool>> remove_srv(const int srv_id);
 
+        /**
+         * appends log entries to cluster.
+         * all log buffer pointers will be moved and become invalid after this returns.
+         * this will automatically forward the request to leader if current node is not
+         * the leader, so that no log entry cookie is allowed since the log entries may
+         * be serialized and transfer to current leader.
+         * @return async result that indicates the log entries have been accepted or not
+         */
         ptr<async_result<bool>> append_entries(std::vector<bufptr>& logs);
+
+        /**
+         * replicates a log entry to cluster.
+         * log buffer pointer will be moved and become invalid after this returns.
+         * @return true if current node is the leader and log entry is accepted.
+         */ 
+        bool replicate_log(bufptr& log, const ptr<void>& cookie, uint cookie_tag);
+
+        bool is_leader() const;
 
     private:
         typedef std::unordered_map<int32, ptr<peer>>::const_iterator peer_itor;

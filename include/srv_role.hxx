@@ -19,7 +19,7 @@
 #define _SRV_ROLE_HXX_
 
 namespace cornerstone {
-    enum srv_role {
+    enum class srv_role {
         follower = 0x1,
         candidate,
         leader
