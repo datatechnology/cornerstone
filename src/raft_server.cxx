@@ -1622,6 +1622,7 @@ bool raft_server::is_leader() const {
 }
 
 bool raft_server::replicate_log(bufptr& log, const ptr<void>& cookie, uint cookie_tag) {
+    recur_lock(lock_);
     if (!is_leader()) {
         return false;
     }
