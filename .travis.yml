@@ -1,5 +1,17 @@
 language: cpp
 dist: xenial
+
 compiler:
   - gcc
+
+install:
+  - sudo apt-get install -y gdb
+
+before_script:
+  - ulimit -c unlimited -S
+
 script: make -f Makefile.lx testr
+
+after_failure:
+  - COREFILE=$(find . -maxdepth 3 -name "core*" | head -n 1)
+  - if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" tests/debug/testr -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
