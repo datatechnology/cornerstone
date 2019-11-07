@@ -307,23 +307,17 @@ ptr<resp_msg> raft_server::handle_vote_req(req_msg& req) {
 }
 
 ptr<resp_msg> raft_server::handle_cli_req(req_msg& req) {
-    // optimization: check leader expiration
-    static volatile int32 time_elasped_since_quorum_resp(std::numeric_limits<int32>::max());
-    if (role_ == srv_role::leader && peers_.size() > 0 && time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
-        std::vector<time_point> peer_resp_times;
-        for (auto& peer : peers_) {
-            peer_resp_times.push_back(peer.second->get_last_resp());
-        }
+    bool leader = is_leader();
 
-        std::sort(peer_resp_times.begin(), peer_resp_times.end());
-        time_elasped_since_quorum_resp = static_cast<int32>(std::chrono::duration_cast<std::chrono::milliseconds>(system_clock::now() - peer_resp_times[peers_.size() / 2]).count());
-        if (time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
-            return cs_new<resp_msg>(state_->get_term(), msg_type::append_entries_response, id_, -1);
-        }
+    // check if leader has expired.
+    // there could be a case that the leader just elected, in that case, client can 
+    // just simply retry, no safety issue here.
+    if (role_ == srv_role::leader && !leader) {
+        return cs_new<resp_msg>(state_->get_term(), msg_type::append_entries_response, id_, -1);
     }
 
     ptr<resp_msg> resp (cs_new<resp_msg>(state_->get_term(), msg_type::append_entries_response, id_, leader_));
-    if (role_ != srv_role::leader) {
+    if (!leader) {
         return resp;
     }
 
@@ -1607,4 +1601,37 @@ ptr<async_result<bool>> raft_server::send_msg_to_leader(ptr<req_msg>& req) {
     };
     rpc_cli->send(req, handler);
     return presult;
+}
+
+bool raft_server::is_leader() const {
+    static volatile int32 time_elasped_since_quorum_resp(std::numeric_limits<int32>::max());
+    if (role_ == srv_role::leader && peers_.size() > 0 && time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
+        std::vector<time_point> peer_resp_times;
+        for (auto& peer : peers_) {
+            peer_resp_times.push_back(peer.second->get_last_resp());
+        }
+
+        std::sort(peer_resp_times.begin(), peer_resp_times.end());
+        time_elasped_since_quorum_resp = static_cast<int32>(std::chrono::duration_cast<std::chrono::milliseconds>(system_clock::now() - peer_resp_times[peers_.size() / 2]).count());
+        if (time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
+            return false;
+        }
+    }
+
+    return role_ == srv_role::leader;
+}
+
+bool raft_server::replicate_log(bufptr& log, const ptr<void>& cookie, uint cookie_tag) {
+    if (!is_leader()) {
+        return false;
+    }
+
+    ptr<log_entry> entry = cs_new<log_entry>(state_->get_term(), std::move(log));
+    if (cookie) {
+        entry->set_cookie(cookie_tag, cookie);
+    }
+
+    log_store_->append(entry);
+    request_append_entries();
+    return false;
 }
