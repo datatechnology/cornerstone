@@ -1618,11 +1618,6 @@ bool raft_server::is_leader() const {
         }
     }
 
-    if (role_ == srv_role::leader && leader_ != id_) {
-        l_->err(sstrfmt("bad leader state leader id %d vs node id %d, step down...").fmt(leader_, id_));
-        exit(1);
-    }
-
     return role_ == srv_role::leader;
 }
 
