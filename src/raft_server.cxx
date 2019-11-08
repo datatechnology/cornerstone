@@ -60,6 +60,7 @@ raft_server::raft_server(context* ctx)
       election_exec_(std::bind(&raft_server::handle_election_timeout, this)),
       election_task_(),
       peers_(),
+      peers_lock_(),
       rpc_clients_(),
       role_(srv_role::follower),
       state_(ctx->state_mgr_->read_state()),
@@ -120,6 +121,7 @@ raft_server::raft_server(context* ctx)
     std::list<ptr<srv_config>>& srvs(config_->get_servers());
     for (cluster_config::srv_itor it = srvs.begin(); it != srvs.end(); ++it) {
         if ((*it)->get_id() != id_) {
+            write_lock(peers_lock_);
             timer_task<peer&>::executor exec = (timer_task<peer&>::executor)std::bind(&raft_server::handle_hb_timeout, this, std::placeholders::_1);
             peers_.insert(std::make_pair((*it)->get_id(), cs_new<peer, ptr<srv_config>&, context&, timer_task<peer&>::executor&>(*it, *ctx_, exec)));
         }
@@ -144,15 +146,18 @@ raft_server::~raft_server() {
         scheduler_->cancel(election_task_);
     }
 
-    for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
-        if (it->second->get_hb_task()) {
-            scheduler_->cancel(it->second->get_hb_task());
+    {
+        read_lock(peers_lock_);
+        for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
+            if (it->second->get_hb_task()) {
+                scheduler_->cancel(it->second->get_hb_task());
+            }
         }
     }
 }
 
 ptr<resp_msg> raft_server::process_req(req_msg& req) {
-    recur_lock(lock_);
+    ptr<resp_msg> resp;
     l_->debug(
         lstrfmt("Receive a %s message from %d with LastLogIndex=%llu, LastLogTerm=%llu, EntriesLength=%d, CommitIndex=%llu and Term=%llu")
         .fmt(
@@ -163,31 +168,33 @@ ptr<resp_msg> raft_server::process_req(req_msg& req) {
             req.log_entries().size(),
             req.get_commit_idx(),
             req.get_term()));
-    if (req.get_type() == msg_type::append_entries_request ||
-        req.get_type() == msg_type::request_vote_request ||
-        req.get_type() == msg_type::install_snapshot_request) {
-        // we allow the server to be continue after term updated to save a round message
-        update_term(req.get_term());
+    {
+        recur_lock(lock_);
+        if (req.get_type() == msg_type::append_entries_request ||
+            req.get_type() == msg_type::request_vote_request ||
+            req.get_type() == msg_type::install_snapshot_request) {
+            // we allow the server to be continue after term updated to save a round message
+            update_term(req.get_term());
 
-        // Reset stepping down value to prevent this server goes down when leader crashes after sending a LeaveClusterRequest
-        if (steps_to_down_ > 0) {
-            steps_to_down_ = 2;
+            // Reset stepping down value to prevent this server goes down when leader crashes after sending a LeaveClusterRequest
+            if (steps_to_down_ > 0) {
+                steps_to_down_ = 2;
+            }
         }
-    }
 
-    ptr<resp_msg> resp;
-    if (req.get_type() == msg_type::append_entries_request) {
-        resp = handle_append_entries(req);
-    }
-    else if (req.get_type() == msg_type::request_vote_request) {
-        resp = handle_vote_req(req);
-    }
-    else if (req.get_type() == msg_type::client_request) {
-        resp = handle_cli_req(req);
-    }
-    else {
-        // extended requests
-        resp = handle_extended_msg(req);
+        if (req.get_type() == msg_type::append_entries_request) {
+            resp = handle_append_entries(req);
+        }
+        else if (req.get_type() == msg_type::request_vote_request) {
+            resp = handle_vote_req(req);
+        }
+        else if (req.get_type() == msg_type::client_request) {
+            resp = handle_cli_req(req);
+        }
+        else {
+            // extended requests
+            resp = handle_extended_msg(req);
+        }
     }
 
     if (resp) {
@@ -398,21 +405,26 @@ void raft_server::request_vote() {
     votes_granted_ += 1;
     voted_servers_.insert(id_);
 
-    // is this the only server?
-    if (votes_granted_ > (int32)(peers_.size() + 1) / 2) {
-        election_completed_ = true;
-        become_leader();
-        return;
-    }
+    {
+        read_lock(peers_lock_);
+        
+        // is this the only server?
+        if (votes_granted_ > (int32)(peers_.size() + 1) / 2) {
+            election_completed_ = true;
+            become_leader();
+            return;
+        }
 
-    for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
-        ptr<req_msg> req(cs_new<req_msg>(state_->get_term(), msg_type::request_vote_request, id_, it->second->get_id(), term_for_log(log_store_->next_slot() - 1), log_store_->next_slot() - 1, quick_commit_idx_));
-        l_->debug(sstrfmt("send %s to server %d with term %llu").fmt(__msg_type_str[req->get_type()], it->second->get_id(), state_->get_term()));
-        it->second->send_req(req, resp_handler_);
+        for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
+            ptr<req_msg> req(cs_new<req_msg>(state_->get_term(), msg_type::request_vote_request, id_, it->second->get_id(), term_for_log(log_store_->next_slot() - 1), log_store_->next_slot() - 1, quick_commit_idx_));
+            l_->debug(sstrfmt("send %s to server %d with term %llu").fmt(__msg_type_str[req->get_type()], it->second->get_id(), state_->get_term()));
+            it->second->send_req(req, resp_handler_);
+        }
     }
 }
 
 void raft_server::request_append_entries() {
+    read_lock(peers_lock_);
     if (peers_.size() == 0) {
         commit(log_store_->next_slot() - 1);
         return;
@@ -435,48 +447,54 @@ bool raft_server::request_append_entries(peer& p) {
 }
 
 void raft_server::handle_peer_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>& err) {
-    recur_lock(lock_);
     if (err) {
         l_->info(sstrfmt("peer response error: %s").fmt(err->what()));
         return;
     }
 
     // update peer last response time
-    auto peer = peers_.find(resp->get_src());
-    if (peer != peers_.end()) {
-        peer->second->set_last_resp(system_clock::now());
+    {
+        read_lock(peers_lock_);
+        auto peer = peers_.find(resp->get_src());
+        if (peer != peers_.end()) {
+            peer->second->set_last_resp(system_clock::now());
+        }
     }
 
     l_->debug(
         lstrfmt("Receive a %s message from peer %d with Result=%d, Term=%llu, NextIndex=%llu")
         .fmt(__msg_type_str[resp->get_type()], resp->get_src(), resp->get_accepted() ? 1 : 0, resp->get_term(), resp->get_next_idx()));
 
-    // if term is updated, no more action is required
-    if (update_term(resp->get_term())) {
-        return;
-    }
-
-    // ignore the response that with lower term for safety
-    switch (resp->get_type())
     {
-    case msg_type::request_vote_response:
-        handle_voting_resp(*resp);
-        break;
-    case msg_type::append_entries_response:
-        handle_append_entries_resp(*resp);
-        break;
-    case msg_type::install_snapshot_response:
-        handle_install_snapshot_resp(*resp);
-        break;
-    default:
-        l_->err(sstrfmt("Received an unexpected message %s for response, system exits.").fmt(__msg_type_str[resp->get_type()]));
-        ctx_->state_mgr_->system_exit(-1);
-        ::exit(-1);
-        break;
+        recur_lock(lock_);
+        // if term is updated, no more action is required
+        if (update_term(resp->get_term())) {
+            return;
+        }
+
+        // ignore the response that with lower term for safety
+        switch (resp->get_type())
+        {
+        case msg_type::request_vote_response:
+            handle_voting_resp(*resp);
+            break;
+        case msg_type::append_entries_response:
+            handle_append_entries_resp(*resp);
+            break;
+        case msg_type::install_snapshot_response:
+            handle_install_snapshot_resp(*resp);
+            break;
+        default:
+            l_->err(sstrfmt("Received an unexpected message %s for response, system exits.").fmt(__msg_type_str[resp->get_type()]));
+            ctx_->state_mgr_->system_exit(-1);
+            ::exit(-1);
+            break;
+        }
     }
 }
 
 void raft_server::handle_append_entries_resp(resp_msg& resp) {
+    read_lock(peers_lock_);
     peer_itor it = peers_.find(resp.get_src());
     if (it == peers_.end()) {
         l_->info(sstrfmt("the response is from an unkonw peer %d").fmt(resp.get_src()));
@@ -526,6 +544,7 @@ void raft_server::handle_append_entries_resp(resp_msg& resp) {
 }
 
 void raft_server::handle_install_snapshot_resp(resp_msg& resp) {
+    read_lock(peers_lock_);
     peer_itor it = peers_.find(resp.get_src());
     if (it == peers_.end()) {
         l_->info(sstrfmt("the response is from an unkonw peer %d").fmt(resp.get_src()));
@@ -585,19 +604,22 @@ void raft_server::handle_voting_resp(resp_msg& resp) {
         return;
     }
 
-    voted_servers_.insert(resp.get_src());
-    if (resp.get_accepted()) {
-        votes_granted_ += 1;
-    }
+    {
+        read_lock(peers_lock_);
+        voted_servers_.insert(resp.get_src());
+        if (resp.get_accepted()) {
+            votes_granted_ += 1;
+        }
 
-    if (voted_servers_.size() >= (peers_.size() + 1)) {
-        election_completed_ = true;
-    }
+        if (voted_servers_.size() >= (peers_.size() + 1)) {
+            election_completed_ = true;
+        }
 
-    if (votes_granted_ > (int32)((peers_.size() + 1) / 2)) {
-        l_->info(sstrfmt("Server is elected as leader for term %llu").fmt(state_->get_term()));
-        election_completed_ = true;
-        become_leader();
+        if (votes_granted_ > (int32)((peers_.size() + 1) / 2)) {
+            l_->info(sstrfmt("Server is elected as leader for term %llu").fmt(state_->get_term()));
+            election_completed_ = true;
+            become_leader();
+        }
     }
 }
 
@@ -654,11 +676,14 @@ void raft_server::become_leader() {
     leader_ = id_;
     srv_to_join_.reset();
     ptr<snapshot> nil_snp;
-    for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
-        it->second->set_next_log_idx(log_store_->next_slot());
-        it->second->set_snapshot_in_sync(nil_snp);
-        it->second->set_free();
-        enable_hb_for_peer(*(it->second));
+    {
+        read_lock(peers_lock_);
+        for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
+            it->second->set_next_log_idx(log_store_->next_slot());
+            it->second->set_snapshot_in_sync(nil_snp);
+            it->second->set_free();
+            enable_hb_for_peer(*(it->second));
+        }
     }
 
     if (config_->get_log_idx() == 0) {
@@ -681,8 +706,11 @@ void raft_server::enable_hb_for_peer(peer& p) {
 
 void raft_server::become_follower() {
     // stop hb for all peers
-    for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
-        it->second->enable_hb(false);
+    {
+        read_lock(peers_lock_);
+        for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
+            it->second->enable_hb(false);
+        }
     }
 
     srv_to_join_.reset();
@@ -712,6 +740,7 @@ void raft_server::commit(ulong target_idx) {
         // if this is a leader notify peers to commit as well
         // for peers that are free, send the request, otherwise, set pending commit flag for that peer
         if (role_ == srv_role::leader) {
+            read_lock(peers_lock_);
             for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
                 if (!request_append_entries(*(it->second))) {
                     it->second->set_pending_commit();
@@ -874,16 +903,19 @@ void raft_server::reconfigure(const ptr<cluster_config>& new_config) {
     std::vector<int32> srvs_removed;
     std::vector<ptr<srv_config>> srvs_added;
     std::list<ptr<srv_config>>& new_srvs(new_config->get_servers());
-    for (std::list<ptr<srv_config>>::const_iterator it = new_srvs.begin(); it != new_srvs.end(); ++it) {
-        peer_itor pit = peers_.find((*it)->get_id());
-        if (pit == peers_.end() && id_ != (*it)->get_id()) {
-            srvs_added.push_back(*it);
+    {
+        read_lock(peers_lock_);
+        for (std::list<ptr<srv_config>>::const_iterator it = new_srvs.begin(); it != new_srvs.end(); ++it) {
+            peer_itor pit = peers_.find((*it)->get_id());
+            if (pit == peers_.end() && id_ != (*it)->get_id()) {
+                srvs_added.push_back(*it);
+            }
         }
-    }
 
-    for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
-        if (!new_config->get_server(it->first)) {
-            srvs_removed.push_back(it->first);
+        for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
+            if (!new_config->get_server(it->first)) {
+                srvs_removed.push_back(it->first);
+            }
         }
     }
 
@@ -896,7 +928,13 @@ void raft_server::reconfigure(const ptr<cluster_config>& new_config) {
         timer_task<peer&>::executor exec = (timer_task<peer&>::executor)std::bind(&raft_server::handle_hb_timeout, this, std::placeholders::_1);
         ptr<peer> p = cs_new<peer, ptr<srv_config>&, context&, timer_task<peer&>::executor&>(srv_added, *ctx_, exec);
         p->set_next_log_idx(log_store_->next_slot());
-        peers_.insert(std::make_pair(srv_added->get_id(), p));
+        
+        // Add to peers
+        {
+            write_lock(peers_lock_);
+            peers_.insert(std::make_pair(srv_added->get_id(), p));
+        }
+
         l_->info(sstrfmt("server %d is added to cluster").fmt(srv_added->get_id()));
         if (role_ == srv_role::leader) {
             l_->info(sstrfmt("enable heartbeating for server %d").fmt(srv_added->get_id()));
@@ -918,14 +956,17 @@ void raft_server::reconfigure(const ptr<cluster_config>& new_config) {
             return;
         }
 
-        peer_itor pit = peers_.find(srv_removed);
-        if (pit != peers_.end()) {
-            pit->second->enable_hb(false);
-            peers_.erase(pit);
-            l_->info(sstrfmt("server %d is removed from cluster").fmt(srv_removed));
-        }
-        else {
-            l_->info(sstrfmt("peer %d cannot be found, no action for removing").fmt(srv_removed));
+        {
+            write_lock(peers_lock_);
+            peer_itor pit = peers_.find(srv_removed);
+            if (pit != peers_.end()) {
+                pit->second->enable_hb(false);
+                peers_.erase(pit);
+                l_->info(sstrfmt("server %d is removed from cluster").fmt(srv_removed));
+            }
+            else {
+                l_->info(sstrfmt("peer %d cannot be found, no action for removing").fmt(srv_removed));
+            }
         }
     }
 
@@ -1153,6 +1194,7 @@ void raft_server::handle_ext_resp_err(rpc_exception& err) {
         req->get_type() == msg_type::leave_cluster_request) {
         ptr<peer> p;
         if (req->get_type() == msg_type::leave_cluster_request) {
+            read_lock(peers_lock_);
             peer_itor pit = peers_.find(req->get_dst());
             if (pit != peers_.end()) {
                 p = pit->second;
@@ -1177,15 +1219,18 @@ void raft_server::handle_ext_resp_err(rpc_exception& err) {
                     * so the bug https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
                     * does not apply to cluster which only has two members
                     */
-                    if (peers_.size() == 1) {
-                        peer_itor pit = peers_.find(p->get_id());
-                        if (pit != peers_.end()) {
-                            pit->second->enable_hb(false);
-                            peers_.erase(pit);
-                            l_->info(sstrfmt("server %d is removed from cluster").fmt(p->get_id()));
-                        }
-                        else {
-                            l_->info(sstrfmt("peer %d cannot be found, no action for removing").fmt(p->get_id()));
+                    {
+                        write_lock(peers_lock_);
+                        if (peers_.size() == 1) {
+                            peer_itor pit = peers_.find(p->get_id());
+                            if (pit != peers_.end()) {
+                                pit->second->enable_hb(false);
+                                peers_.erase(pit);
+                                l_->info(sstrfmt("server %d is removed from cluster").fmt(p->get_id()));
+                            }
+                            else {
+                                l_->info(sstrfmt("peer %d cannot be found, no action for removing").fmt(p->get_id()));
+                            }
                         }
                     }
 
@@ -1239,13 +1284,18 @@ ptr<resp_msg> raft_server::handle_rm_srv_req(req_msg& req) {
         return resp;
     }
 
-    peer_itor pit = peers_.find(srv_id);
-    if (pit == peers_.end()) {
-        l_->info(sstrfmt("server %d does not exist").fmt(srv_id));
-        return resp;
+    ptr<peer> p;
+    {
+        read_lock(peers_lock_);
+        peer_itor pit = peers_.find(srv_id);
+        if (pit == peers_.end()) {
+            l_->info(sstrfmt("server %d does not exist").fmt(srv_id));
+            return resp;
+        }
+
+        p = pit->second;
     }
 
-    ptr<peer> p = pit->second;
     ptr<req_msg> leave_req(cs_new<req_msg>(state_->get_term(), msg_type::leave_cluster_request, id_, srv_id, 0, log_store_->next_slot() - 1, quick_commit_idx_));
     p->send_req(leave_req, ex_resp_handler_);
     resp->accept(log_store_->next_slot());
@@ -1266,9 +1316,12 @@ ptr<resp_msg> raft_server::handle_add_srv_req(req_msg& req) {
     }
 
     ptr<srv_config> srv_conf(srv_config::deserialize(entries[0]->get_buf()));
-    if (peers_.find(srv_conf->get_id()) != peers_.end() || id_ == srv_conf->get_id()) {
-        l_->warn(lstrfmt("the server to be added has a duplicated id with existing server %d").fmt(srv_conf->get_id()));
-        return resp;
+    {
+        read_lock(peers_lock_);
+        if (peers_.find(srv_conf->get_id()) != peers_.end() || id_ == srv_conf->get_id()) {
+            l_->warn(lstrfmt("the server to be added has a duplicated id with existing server %d").fmt(srv_conf->get_id()));
+            return resp;
+        }
     }
 
     if (config_changing_) {
@@ -1605,6 +1658,7 @@ ptr<async_result<bool>> raft_server::send_msg_to_leader(ptr<req_msg>& req) {
 
 bool raft_server::is_leader() const {
     static volatile int32 time_elasped_since_quorum_resp(std::numeric_limits<int32>::max());
+    read_lock(peers_lock_);
     if (role_ == srv_role::leader && peers_.size() > 0 && time_elasped_since_quorum_resp > ctx_->params_->election_timeout_upper_bound_ * 2) {
         std::vector<time_point> peer_resp_times;
         for (auto& peer : peers_) {
@@ -1622,7 +1676,6 @@ bool raft_server::is_leader() const {
 }
 
 bool raft_server::replicate_log(bufptr& log, const ptr<void>& cookie, uint cookie_tag) {
-    recur_lock(lock_);
     if (!is_leader()) {
         return false;
     }
@@ -1633,6 +1686,10 @@ bool raft_server::replicate_log(bufptr& log, const ptr<void>& cookie, uint cooki
     }
 
     log_store_->append(entry);
-    request_append_entries();
+    {
+        recur_lock(lock_);
+        request_append_entries();
+    }
+    
     return false;
 }
