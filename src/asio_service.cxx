@@ -85,10 +85,13 @@ namespace cornerstone {
     }
 
     // asio service implementation
-    class asio_service_impl {
+    class asio_service_impl : public std::enable_shared_from_this<asio_service_impl> {
     public:
         asio_service_impl();
         ~asio_service_impl();
+    
+    public:
+        void run();
 
     private:
         void stop();
@@ -439,22 +442,29 @@ void _timer_handler_(ptr<delayed_task>& task, asio::error_code err) {
 
 asio_service_impl::asio_service_impl()
     : io_svc_(), log_flush_tm_(io_svc_), continue_(1), logger_list_lock_(), loggers_(), stopping_(false), stopping_lock_(), stopping_cv_() {
+}
+
+asio_service_impl::~asio_service_impl() {
+    stop();
+}
+
+void asio_service_impl::run() {
     // set expires_after to a very large value so that this will not affect the overall performance
     log_flush_tm_.expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::seconds(1)));
-    log_flush_tm_.async_wait(std::bind(&asio_service_impl::flush_all_loggers, this, std::placeholders::_1));
+    log_flush_tm_.async_wait([self = shared_from_this()](asio::error_code err) mutable {
+        self->flush_all_loggers(err);
+    });
     unsigned int cpu_cnt = std::thread::hardware_concurrency();
     if (cpu_cnt == 0) {
         cpu_cnt = 1;
     }
 
     for (unsigned int i = 0; i < cpu_cnt; ++i) {
-        std::thread t(std::bind(&asio_service_impl::worker_entry, this));
+        std::thread t([self = shared_from_this()]() mutable {
+            self->worker_entry();
+        });
         t.detach();
     }
-}
-
-asio_service_impl::~asio_service_impl() {
-    stop();
 }
 
 void asio_service_impl::worker_entry() {
@@ -469,7 +479,9 @@ void asio_service_impl::worker_entry() {
 void asio_service_impl::flush_all_loggers(asio::error_code /* err */) {
     if (continue_.load() == 1) {
         log_flush_tm_.expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::hours(1000)));
-        log_flush_tm_.async_wait(std::bind(&asio_service_impl::flush_all_loggers, this, std::placeholders::_1));
+        log_flush_tm_.async_wait([self = shared_from_this()](asio::error_code err) mutable {
+            self->flush_all_loggers(err);
+        });
     }
 
     {
@@ -533,13 +545,11 @@ void cornerstone::impls::fs_based_logger::write_log(const std::string& level, co
 }
 
 asio_service::asio_service()
-    : impl_(new asio_service_impl) {
-    
+    : impl_(cs_new<asio_service_impl>()) {
+    impl_->run();
 }
 
-asio_service::~asio_service() {
-    delete impl_;
-}
+asio_service::~asio_service() = default;
 
 void asio_service::schedule(ptr<delayed_task>& task, int32 milliseconds) {
     if (task->get_impl_context() == nilptr) {

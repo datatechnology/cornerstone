@@ -52,7 +52,7 @@ namespace cornerstone {
     private:
         virtual void cancel_impl(ptr<delayed_task>& task) __override__;
     private:
-        asio_service_impl* impl_;
+        ptr<asio_service_impl> impl_;
     };
 }
 
