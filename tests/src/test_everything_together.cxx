@@ -218,6 +218,30 @@ void test_raft_server_with_asio() {
     rmdir("store3");
 }
 
+class test_event_listener: public raft_event_listener {
+public:
+    test_event_listener(int id) : raft_event_listener(), srv_id_(id){}
+
+public:
+    virtual void on_event(raft_event event) override {
+        switch (event)
+        {
+        case raft_event::become_follower:
+            std::cout << srv_id_ << " becomes a follower" << std::endl;
+            break;
+        case raft_event::become_leader:
+            std::cout << srv_id_ << " becomes a leader" << std::endl;
+            break;
+        case raft_event::logs_catch_up:
+            std::cout << srv_id_ << " catch up all logs" << std::endl;
+            break;
+        }
+    }
+
+private:
+    int srv_id_;
+};
+
 void run_raft_instance_with_asio(int srv_id) {
     ptr<logger> l(asio_svc_->create_logger(asio_service::log_level::debug, sstrfmt("log%d.log").fmt(srv_id)));
     ptr<rpc_listener> listener(asio_svc_->create_rpc_listener((ushort)(9000 + srv_id), l));
@@ -231,7 +255,7 @@ void run_raft_instance_with_asio(int srv_id) {
         .with_rpc_failure_backoff(50);
     ptr<delayed_task_scheduler> scheduler = asio_svc_;
     ptr<rpc_client_factory> rpc_cli_factory = asio_svc_;
-    context* ctx(new context(smgr, smachine, listener, l, rpc_cli_factory, scheduler, params));
+    context* ctx(new context(smgr, smachine, listener, l, rpc_cli_factory, scheduler, cs_new<test_event_listener>(srv_id), params));
     ptr<raft_server> server(cs_new<raft_server>(ctx));
     listener->listen(server);
 

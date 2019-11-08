@@ -695,6 +695,11 @@ void raft_server::become_leader() {
         config_changing_ = true;
     }
 
+    if (ctx_->event_listener_)
+    {
+        ctx_->event_listener_->on_event(raft_event::become_leader);
+    }
+
     request_append_entries();
 }
 
@@ -716,6 +721,10 @@ void raft_server::become_follower() {
     srv_to_join_.reset();
     role_ = srv_role::follower;
     restart_election_timer();
+    if (ctx_->event_listener_)
+    {
+        ctx_->event_listener_->on_event(raft_event::become_follower);
+    }
 }
 
 bool raft_server::update_term(ulong term) {
@@ -1523,6 +1532,12 @@ void raft_server::commit_in_bg() {
         try {
             while (quick_commit_idx_ <= sm_commit_index_
                 || sm_commit_index_ >= log_store_->next_slot() - 1) {
+                // already catch up all committed logs
+                if (ctx_->event_listener_)
+                {
+                    ctx_->event_listener_->on_event(raft_event::logs_catch_up);
+                }
+
                 std::unique_lock<std::mutex> lock(commit_lock_);
                 commit_cv_.wait(lock);
                 if (stopping_) {

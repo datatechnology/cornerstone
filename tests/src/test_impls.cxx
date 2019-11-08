@@ -464,7 +464,7 @@ void run_raft_instance(int srv_id) {
         .with_max_append_size(100)
         .with_rpc_failure_backoff(50);
     ptr<delayed_task_scheduler> scheduler = asio_svc;
-    context* ctx(new context(smgr, smachine, listener, l, rpc_factory, scheduler, params));
+    context* ctx(new context(smgr, smachine, listener, l, rpc_factory, scheduler, nilptr, params));
     ptr<raft_server> server(cs_new<raft_server>(ctx));
     listener->listen(server);
 

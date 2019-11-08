@@ -71,6 +71,7 @@
 #include "state_mgr.hxx"
 #include "rpc_listener.hxx"
 #include "snapshot.hxx"
+#include "events.hxx"
 #include "state_machine.hxx"
 #include "rpc_cli.hxx"
 #include "rpc_cli_factory.hxx"
