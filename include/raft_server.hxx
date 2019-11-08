@@ -116,6 +116,7 @@ namespace cornerstone {
         timer_task<void>::executor election_exec_;
         ptr<delayed_task> election_task_;
         std::unordered_map<int32, ptr<peer>> peers_;
+        mutable std::shared_timed_mutex peers_lock_;
         std::unordered_map<int32, ptr<rpc_client>> rpc_clients_;
         srv_role role_;
         ptr<srv_state> state_;
