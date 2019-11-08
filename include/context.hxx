@@ -22,12 +22,13 @@ namespace cornerstone {
     struct context {
     public:
         context(
-            ptr<state_mgr>& mgr,
-            ptr<state_machine>& m, 
-            ptr<rpc_listener>& listener, 
-            ptr<logger>& l, 
-            ptr<rpc_client_factory>& cli_factory, 
-            ptr<delayed_task_scheduler>& scheduler,
+            const ptr<state_mgr>& mgr,
+            const ptr<state_machine>& m, 
+            const ptr<rpc_listener>& listener, 
+            const ptr<logger>& l, 
+            const ptr<rpc_client_factory>& cli_factory, 
+            const ptr<delayed_task_scheduler>& scheduler,
+            const ptr<raft_event_listener>& event_listener,
             raft_params* params = nilptr)
             : state_mgr_(mgr), 
               state_machine_(m),
@@ -35,6 +36,7 @@ namespace cornerstone {
               logger_(l), 
               rpc_cli_factory_(cli_factory), 
               scheduler_(scheduler), 
+              event_listener_(event_listener),
               params_(params == nilptr ? new raft_params : params) {}
 
     __nocopy__(context)
@@ -45,7 +47,8 @@ namespace cornerstone {
         ptr<logger> logger_;
         ptr<rpc_client_factory> rpc_cli_factory_;
         ptr<delayed_task_scheduler> scheduler_;
-        std::unique_ptr<raft_params> params_;
+        ptr<raft_event_listener> event_listener_;
+        uptr<raft_params> params_;
     };
 }
 
