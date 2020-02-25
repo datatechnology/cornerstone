@@ -163,6 +163,7 @@ namespace cornerstone {
          */ 
         raft_params& with_defensive_prevote(bool enabled) {
             defensive_prevote_ = enabled;
+            return *this;
         }
 
         int max_hb_interval() const {
