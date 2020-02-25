@@ -24,8 +24,8 @@ const int raft_server::default_snapshot_sync_block_size = 4 * 1024;
 // for tracing and debugging
 static const char* __msg_type_str[] = {
     "unknown",
-    "request_vote_request",
-    "request_vote_response",
+    "vote_request",
+    "vote_response",
     "append_entries_request",
     "append_entries_response",
     "client_request",
@@ -40,7 +40,9 @@ static const char* __msg_type_str[] = {
     "leave_cluster_request",
     "leave_cluster_response",
     "install_snapshot_request",
-    "install_snapshot_response"
+    "install_snapshot_response",
+    "prevote_request",
+    "prevote_response"
 };
 
 raft_server::raft_server(context* ctx)
@@ -79,7 +81,8 @@ raft_server::raft_server(context* ctx)
       resp_handler_((rpc_handler)std::bind(&raft_server::handle_peer_resp, this, std::placeholders::_1, std::placeholders::_2)),
       ex_resp_handler_((rpc_handler)std::bind(&raft_server::handle_ext_resp, this, std::placeholders::_1, std::placeholders::_2)), 
       last_snapshot_(ctx->state_machine_->last_snapshot()),
-      voted_servers_() {
+      voted_servers_(),
+      prevote_state_() {
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(ctx->params_->election_timeout_lower_bound_, ctx->params_->election_timeout_upper_bound_);
@@ -171,7 +174,7 @@ ptr<resp_msg> raft_server::process_req(req_msg& req) {
     {
         recur_lock(lock_);
         if (req.get_type() == msg_type::append_entries_request ||
-            req.get_type() == msg_type::request_vote_request ||
+            req.get_type() == msg_type::vote_request ||
             req.get_type() == msg_type::install_snapshot_request) {
             // we allow the server to be continue after term updated to save a round message
             update_term(req.get_term());
@@ -185,7 +188,7 @@ ptr<resp_msg> raft_server::process_req(req_msg& req) {
         if (req.get_type() == msg_type::append_entries_request) {
             resp = handle_append_entries(req);
         }
-        else if (req.get_type() == msg_type::request_vote_request) {
+        else if (req.get_type() == msg_type::vote_request) {
             resp = handle_vote_req(req);
         }
         else if (req.get_type() == msg_type::client_request) {
@@ -299,7 +302,7 @@ ptr<resp_msg> raft_server::handle_append_entries(req_msg& req) {
 }
 
 ptr<resp_msg> raft_server::handle_vote_req(req_msg& req) {
-    ptr<resp_msg> resp(cs_new<resp_msg>(state_->get_term(), msg_type::request_vote_response, id_, req.get_src()));
+    ptr<resp_msg> resp(cs_new<resp_msg>(state_->get_term(), msg_type::vote_response, id_, req.get_src()));
     bool log_okay = req.get_last_log_term() > log_store_->last_entry()->get_term() ||
         (req.get_last_log_term() == log_store_->last_entry()->get_term() &&
             log_store_->next_slot() - 1 <= req.get_last_log_idx());
@@ -308,6 +311,24 @@ ptr<resp_msg> raft_server::handle_vote_req(req_msg& req) {
         resp->accept(log_store_->next_slot());
         state_->set_voted_for(req.get_src());
         ctx_->state_mgr_->save_state(*state_);
+    }
+
+    return resp;
+}
+
+ptr<resp_msg> raft_server::handle_prevote_req(req_msg& req) {
+    ptr<resp_msg> resp(cs_new<resp_msg>(state_->get_term(), msg_type::prevote_response, id_, req.get_src()));
+    bool log_okay = req.get_last_log_term() > log_store_->last_entry()->get_term() ||
+        (req.get_last_log_term() == log_store_->last_entry()->get_term() &&
+            log_store_->next_slot() - 1 <= req.get_last_log_idx());
+    bool grant = req.get_term() >= state_->get_term() && log_okay;
+    if (ctx_->params_->defensive_prevote_) {
+        // In defensive mode, server will deny the prevote when it's operating well.
+        grant = grant && prevote_state_;
+    }
+
+    if (grant) {
+        resp->accept(log_store_->next_slot());
     }
 
     return resp;
@@ -382,7 +403,22 @@ void raft_server::handle_election_timeout() {
         return;
     }
 
-    l_->debug("Election timeout, change to Candidate");
+    if (ctx_->params_->prevote_enabled_ && role_ == srv_role::follower) {
+        if (prevote_state_ && !prevote_state_->empty()) {
+            l_->debug("Election timeout, but there is already a prevote ongoing, ignore this event");
+        } else {
+            l_->debug("Election timeout, start prevoting");
+            request_prevote();
+        }
+    } else {
+        l_->debug("Election timeout, change to Candidate");
+        become_candidate();
+    }
+    
+}
+
+void raft_server::become_candidate() {
+    prevote_state_.reset();
     state_->inc_term();
     state_->set_voted_for(-1);
     role_ = srv_role::candidate;
@@ -398,6 +434,38 @@ void raft_server::handle_election_timeout() {
     }
 }
 
+void raft_server::request_prevote() {
+    l_->info(sstrfmt("prevote started with term %llu").fmt(state_->get_term()));
+    bool change_to_candidate(false);
+    {
+        read_lock(peers_lock_);
+        if (peers_.size() == 0) {
+            change_to_candidate = true;
+        }
+    }
+
+    if (change_to_candidate) {
+        l_->info("prevote done, change to candidate and start voting");
+        become_candidate();
+        return;
+    }
+
+    if (!prevote_state_) {
+        prevote_state_ = std::make_unique<prevote_state>();
+    }
+
+    prevote_state_->inc_accepted_votes();
+    prevote_state_->add_voted_server(id_);
+    {
+        read_lock(peers_lock_);
+        for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
+            ptr<req_msg> req(cs_new<req_msg>(state_->get_term(), msg_type::prevote_request, id_, it->second->get_id(), term_for_log(log_store_->next_slot() - 1), log_store_->next_slot() - 1, quick_commit_idx_));
+            l_->debug(sstrfmt("send %s to server %d with term %llu").fmt(__msg_type_str[req->get_type()], it->second->get_id(), state_->get_term()));
+            it->second->send_req(req, ex_resp_handler_);
+        }
+    }
+}
+
 void raft_server::request_vote() {
     l_->info(sstrfmt("requestVote started with term %llu").fmt(state_->get_term()));
     state_->set_voted_for(id_);
@@ -405,21 +473,25 @@ void raft_server::request_vote() {
     votes_granted_ += 1;
     voted_servers_.insert(id_);
 
+    bool change_to_leader(false);
     {
         read_lock(peers_lock_);
         
         // is this the only server?
         if (votes_granted_ > (int32)(peers_.size() + 1) / 2) {
             election_completed_ = true;
-            become_leader();
-            return;
+            change_to_leader = true;
+        } else {
+            for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
+                ptr<req_msg> req(cs_new<req_msg>(state_->get_term(), msg_type::vote_request, id_, it->second->get_id(), term_for_log(log_store_->next_slot() - 1), log_store_->next_slot() - 1, quick_commit_idx_));
+                l_->debug(sstrfmt("send %s to server %d with term %llu").fmt(__msg_type_str[req->get_type()], it->second->get_id(), state_->get_term()));
+                it->second->send_req(req, resp_handler_);
+            }
         }
+    }
 
-        for (peer_itor it = peers_.begin(); it != peers_.end(); ++it) {
-            ptr<req_msg> req(cs_new<req_msg>(state_->get_term(), msg_type::request_vote_request, id_, it->second->get_id(), term_for_log(log_store_->next_slot() - 1), log_store_->next_slot() - 1, quick_commit_idx_));
-            l_->debug(sstrfmt("send %s to server %d with term %llu").fmt(__msg_type_str[req->get_type()], it->second->get_id(), state_->get_term()));
-            it->second->send_req(req, resp_handler_);
-        }
+    if (change_to_leader) {
+        become_leader();
     }
 }
 
@@ -458,6 +530,11 @@ void raft_server::handle_peer_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>
         auto peer = peers_.find(resp->get_src());
         if (peer != peers_.end()) {
             peer->second->set_last_resp(system_clock::now());
+        } else {
+            l_->info(
+                sstrfmt("Peer %d not found, ignore the message")
+                .fmt(resp->get_src()));
+            return;
         }
     }
 
@@ -475,7 +552,7 @@ void raft_server::handle_peer_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>
         // ignore the response that with lower term for safety
         switch (resp->get_type())
         {
-        case msg_type::request_vote_response:
+        case msg_type::vote_response:
             handle_voting_resp(*resp);
             break;
         case msg_type::append_entries_response:
@@ -623,6 +700,39 @@ void raft_server::handle_voting_resp(resp_msg& resp) {
     }
 }
 
+void raft_server::handle_prevote_resp(resp_msg& resp) {
+    if (resp.get_term() != state_->get_term()) {
+        l_->info(sstrfmt("Received an outdated prevote response at term %llu v.s. current term %llu").fmt(resp.get_term(), state_->get_term()));
+        return;
+    }
+
+    if (!prevote_state_) {
+        l_->info(sstrfmt("Prevote has completed, term received: %llu, current term %llu").fmt(resp.get_term(), state_->get_term()));
+        return;
+    }
+
+    {
+        read_lock(peers_lock_);
+        bool vote_added = prevote_state_->add_voted_server(resp.get_src());
+        if (!vote_added) {
+            l_->info("Prevote has from %d has been processed.");
+            return;
+        }
+
+        if (resp.get_accepted()) {
+            prevote_state_->inc_accepted_votes();
+        }
+
+        if (prevote_state_->get_accepted_votes() > (int32)((peers_.size() + 1) / 2)) {
+            l_->info(sstrfmt("Prevote passed for term %llu").fmt(state_->get_term()));
+            become_candidate();
+        } else if (prevote_state_->num_of_votes() >= (peers_.size() + 1)) {
+            l_->info(sstrfmt("Prevote failed for term %llu").fmt(state_->get_term()));
+            prevote_state_->reset(); // still in prevote state, just reset the prevote state
+        }
+    }
+}
+
 void raft_server::handle_hb_timeout(peer& p) {
     recur_lock(lock_);
     l_->debug(sstrfmt("Heartbeat timeout for %d").fmt(p.get_id()));
@@ -710,6 +820,9 @@ void raft_server::enable_hb_for_peer(peer& p) {
 }
 
 void raft_server::become_follower() {
+    // reset prevote
+    prevote_state_.reset();
+
     // stop hb for all peers
     {
         read_lock(peers_lock_);
@@ -997,6 +1110,8 @@ ptr<resp_msg> raft_server::handle_extended_msg(req_msg& req) {
         return handle_leave_cluster_req(req);
     case msg_type::install_snapshot_request:
         return handle_install_snapshot_req(req);
+    case msg_type::prevote_request:
+        return handle_prevote_req(req);
     default:
         l_->err(sstrfmt("receive an unknown request %s, for safety, step down.").fmt(__msg_type_str[req.get_type()]));
         ctx_->state_mgr_->system_exit(-1);
@@ -1186,6 +1301,9 @@ void raft_server::handle_ext_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>&
 
             sync_log_to_new_srv(srv_to_join_->get_next_log_idx());
         }
+        break;
+    case msg_type::prevote_response:
+        handle_prevote_resp(*resp);
         break;
     default:
         l_->err(lstrfmt("received an unexpected response message type %s, for safety, stepping down").fmt(__msg_type_str[resp->get_type()]));

@@ -41,6 +41,7 @@ __decl_test__(log_store_pack);
 __decl_test__(log_store_compact_all);
 __decl_test__(log_store_compact_random);
 __decl_test__(raft_server_with_asio);
+__decl_test__(raft_server_with_prevote);
 
 int main(int argc, char* argv[]) {
     const char* test = "*";
@@ -62,5 +63,6 @@ int main(int argc, char* argv[]) {
     __run_test__(ptr)
     __run_test__(raft_server)
     __run_test__(raft_server_with_asio)
+    __run_test__(raft_server_with_prevote)
     return 0;
 }

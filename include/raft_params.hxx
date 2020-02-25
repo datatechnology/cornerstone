@@ -31,7 +31,9 @@ namespace cornerstone {
             snapshot_distance_(0),
             snapshot_block_size_(0),
             max_append_size_(100),
-            reserved_log_items_(10000) {}
+            reserved_log_items_(10000),
+            prevote_enabled_(false),
+            defensive_prevote_(true) {}
 
         __nocopy__(raft_params)
     public:
@@ -138,6 +140,31 @@ namespace cornerstone {
             return *this;
         }
 
+        /**
+         * Enable or disable prevote for the instance, by default,
+         * prevote is disabled.
+         * @param prevote_enabled true to enable or false to disable, which is default
+         * @return self
+         */ 
+        raft_params& with_prevote_enabled(bool prevote_enabled) {
+            prevote_enabled_ = prevote_enabled;
+            return *this;
+        }
+
+        /**
+         * Enable or disable defensive mode of prevote feature,
+         * by default, this is enabled, which means server will
+         * only accept a prevote request iff they are also in prevote
+         * status. If this is disabled, servers will accept the 
+         * prevote request when the term and log index are looked
+         * fine to them.
+         * @param enabled true to enable while false to disable, default is true
+         * @return self
+         */ 
+        raft_params& with_defensive_prevote(bool enabled) {
+            defensive_prevote_ = enabled;
+        }
+
         int max_hb_interval() const {
             return std::max(heart_beat_interval_, election_timeout_lower_bound_ - (heart_beat_interval_ / 2));
         }
@@ -153,6 +180,8 @@ namespace cornerstone {
         int32 snapshot_block_size_;
         int32 max_append_size_;
         int32 reserved_log_items_;
+        bool prevote_enabled_;
+        bool defensive_prevote_;
     };
 }
 
