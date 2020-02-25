@@ -729,6 +729,7 @@ void raft_server::handle_prevote_resp(resp_msg& resp) {
         } else if (prevote_state_->num_of_votes() >= (peers_.size() + 1)) {
             l_->info(sstrfmt("Prevote failed for term %llu").fmt(state_->get_term()));
             prevote_state_->reset(); // still in prevote state, just reset the prevote state
+            restart_election_timer(); // restart election timer for a new round of prevote
         }
     }
 }
