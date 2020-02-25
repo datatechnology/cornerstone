@@ -20,8 +20,8 @@
 
 namespace cornerstone{
     enum msg_type{
-        request_vote_request = 0x1,
-        request_vote_response,
+        vote_request = 0x1,
+        vote_response,
         append_entries_request,
         append_entries_response,
         client_request,
@@ -36,7 +36,9 @@ namespace cornerstone{
         leave_cluster_request,
         leave_cluster_response,
         install_snapshot_request,
-        install_snapshot_response
+        install_snapshot_response,
+        prevote_request,
+        prevote_response
     };
 }
 

@@ -66,8 +66,10 @@ namespace cornerstone {
         ptr<resp_msg> handle_log_sync_req(req_msg& req);
         ptr<resp_msg> handle_join_cluster_req(req_msg& req);
         ptr<resp_msg> handle_leave_cluster_req(req_msg& req);
+        ptr<resp_msg> handle_prevote_req(req_msg& req);
         bool handle_snapshot_sync_req(snapshot_sync_req& req);
         void request_vote();
+        void request_prevote();
         void request_append_entries();
         bool request_append_entries(peer& p);
         void handle_peer_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>& err);
@@ -76,12 +78,14 @@ namespace cornerstone {
         void handle_voting_resp(resp_msg& resp);
         void handle_ext_resp(ptr<resp_msg>& resp, const ptr<rpc_exception>& err);
         void handle_ext_resp_err(rpc_exception& err);
+        void handle_prevote_resp(resp_msg& resp);
         ptr<req_msg> create_append_entries_req(peer& p);
         ptr<req_msg> create_sync_snapshot_req(peer& p, ulong last_log_idx, ulong term, ulong commit_idx);
         void commit(ulong target_idx);
         void snapshot_and_compact(ulong committed_idx);
         bool update_term(ulong term);
         void reconfigure(const ptr<cluster_config>& new_config);
+        void become_candidate();
         void become_leader();
         void become_follower();
         void enable_hb_for_peer(peer& p);
@@ -137,6 +141,7 @@ namespace cornerstone {
         rpc_handler ex_resp_handler_;
         ptr<snapshot> last_snapshot_;
         std::unordered_set<int32> voted_servers_;
+        uptr<prevote_state> prevote_state_;
     };
 }
 #endif //_RAFT_SERVER_HXX_
