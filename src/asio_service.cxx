@@ -328,7 +328,7 @@ namespace cornerstone {
             ptr<asio_rpc_client> self(this->shared_from_this());
             if (!socket_.is_open()) {
                 asio::ip::tcp::resolver::query q(host_, port_, asio::ip::tcp::resolver::query::all_matching);
-                resolver_.async_resolve(q, [self, this, req, when_done](std::error_code err, asio::ip::tcp::resolver::iterator itor) -> void {
+                resolver_.async_resolve(q, [self, this, req, when_done](std::error_code err, asio::ip::tcp::resolver::iterator itor) mutable {
                     if (!err) {
                         asio::async_connect(
                             socket_, 
