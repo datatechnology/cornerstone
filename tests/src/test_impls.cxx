@@ -353,7 +353,9 @@ public:
     __nocopy__(test_rpc_listener)
 public:
     virtual void listen(ptr<msg_handler>& handler) __override__{
-        std::thread t(std::bind(&test_rpc_listener::do_listening, this, handler));
+        std::thread t([this, handler]() mutable {
+            this->do_listening(handler);
+        });
         t.detach();
     }
 
@@ -400,11 +402,17 @@ std::condition_variable stop_test_cv;
 
 void run_raft_instance(int srv_id);
 void test_raft_server() {
-    std::thread t1(std::bind(&run_raft_instance, 1));
+    std::thread t1([]{
+        run_raft_instance(1);
+    });
     t1.detach();
-    std::thread t2(std::bind(&run_raft_instance, 2));
+    std::thread t2([]{
+        run_raft_instance(2);
+    });
     t2.detach();
-    std::thread t3(std::bind(&run_raft_instance, 3));
+    std::thread t3([]{
+        run_raft_instance(3);
+    });
     t3.detach();
     std::cout << "waiting for leader election..." << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(1));

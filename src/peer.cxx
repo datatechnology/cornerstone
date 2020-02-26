@@ -21,7 +21,9 @@ using namespace cornerstone;
 
 void peer::send_req(ptr<req_msg>& req, rpc_handler& handler) {
     ptr<rpc_result> pending = cs_new<rpc_result>(handler);
-    rpc_handler h = (rpc_handler)std::bind(&peer::handle_rpc_result, this, req, pending, std::placeholders::_1, std::placeholders::_2);
+    rpc_handler h = [this, req, pending](ptr<resp_msg>& resp, const ptr<rpc_exception>& ex) mutable {
+        this->handle_rpc_result(req, pending, resp, ex);
+    };
     rpc_->send(req, h);
 }
 
