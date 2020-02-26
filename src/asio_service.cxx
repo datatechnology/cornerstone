@@ -149,7 +149,12 @@ namespace cornerstone {
                     }
 
                     this->log_data_ = buffer::alloc((size_t)data_size);
-                    asio::async_read(this->socket_, asio::buffer(this->log_data_->data(), (size_t)data_size), std::bind(&rpc_session::read_log_data, self, std::placeholders::_1, std::placeholders::_2));
+                    asio::async_read(
+                        this->socket_, 
+                        asio::buffer(this->log_data_->data(), (size_t)data_size),
+                        [self](const asio::error_code& err, size_t n) {
+                            self->read_log_data(err, n);
+                        });
                 }
                 else {
                     l_->err(lstrfmt("failed to read rpc header from socket due to error %d").fmt(err.value()));
@@ -270,7 +275,13 @@ namespace cornerstone {
             }
 
             ptr<asio_rpc_listener> self(this->shared_from_this());
-            ptr<rpc_session> session(cs_new<rpc_session>(io_svc_, handler_, l_, std::bind(&asio_rpc_listener::remove_session, self, std::placeholders::_1)));
+            ptr<rpc_session> session(
+                cs_new<rpc_session>(
+                    io_svc_, handler_, 
+                    l_, 
+                    [self](const ptr<rpc_session>& s) {
+                        self->remove_session(s);
+                    }));
             acceptor_.async_accept(session->socket(), [self, this, session](const asio::error_code& err) -> void {
                 if (!err) {
                     this->l_->debug("receive a incoming rpc connection");
@@ -319,7 +330,12 @@ namespace cornerstone {
                 asio::ip::tcp::resolver::query q(host_, port_, asio::ip::tcp::resolver::query::all_matching);
                 resolver_.async_resolve(q, [self, this, req, when_done](std::error_code err, asio::ip::tcp::resolver::iterator itor) -> void {
                     if (!err) {
-                        asio::async_connect(socket_, itor, std::bind(&asio_rpc_client::connected, self, req, when_done, std::placeholders::_1, std::placeholders::_2));
+                        asio::async_connect(
+                            socket_, 
+                            itor, 
+                            [self, req, when_done](std::error_code err, asio::ip::tcp::resolver::iterator itor) mutable {
+                                self->connected(req, when_done, err, itor);
+                            });
                     }
                     else {
                         ptr<resp_msg> rsp;
@@ -560,7 +576,9 @@ void asio_service::schedule(ptr<delayed_task>& task, int32 milliseconds) {
 
     asio::steady_timer* timer = static_cast<asio::steady_timer*>(task->get_impl_context());
     timer->expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(milliseconds)));
-    timer->async_wait(std::bind(&_timer_handler_, task, std::placeholders::_1));
+    timer->async_wait([task](const asio::error_code err) mutable {
+        _timer_handler_(task, err);
+    });
 }
 
 void asio_service::cancel_impl(ptr<delayed_task>& task) {
