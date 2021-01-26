@@ -1,6 +1,12 @@
-name: C/C++ CI
+name: Build and test
 
-on: [push]
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
@@ -9,5 +15,5 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
-    - name: make and test
+    - name: run tests
       run: make -f Makefile.lx testr
