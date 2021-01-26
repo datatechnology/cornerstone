@@ -1,18 +1,21 @@
-![Build Status](https://travis-ci.org/datatechnology/cornerstone.svg?branch=master)
-
 # cornerstone
-A very lightweight but complete Raft Consensus C++ implementation, the original implementation was published by [Andy Chen] (https://github.com/andy-yx-chen), as he agrees,  we re-organize his source code, and republish under the same license.
+
+![Build Status](https://github.com/datatechnology/cornerstone/workflows/Build%20and%20test/badge.svg)
+
+A very lightweight but complete Raft Consensus C++ implementation, the original implementation was published by [Andy Chen] (<https://github.com/andy-yx-chen>), as he agrees,  we re-organize his source code, and republish under the same license.
 
 To respect Andy Chen's work, we keep using **cornerstone** as the project's name and we will start iterating based on his work.
 
-**We throw away ptr\<T\>, now resources are managed by shared_ptr!**
+## Notice
 
-**Don't put fs_log_store into production, it's for demo and algorithm verification only**
+- fs_log_store is not for production
 
 ## Users
+
  1. [NuRaft](https://github.com/eBay/NuRaft)
 
 ## Features
+
 - [x] Core algorithm, implemented based on TLA+ spec (though the spec does not have timer module)
 - [x] Configuration change support, add or remove servers without any limitation
 - [x] Log compaction
@@ -24,6 +27,7 @@ To respect Andy Chen's work, we keep using **cornerstone** as the project's name
 The key advantage or could be disadvantage for this implementation is it does not have any additional code that is unrelated to raft consensus itself. Which means, it does not have state machine, which could be a storage service.
 It also has very few dependencies, actually, only the STL and asio. It chooses asio because asio supports both timer framework and async socket framework, which could be run on Windows, Linux and BSD systems.
 The project only contains the following stuff,
+
  1. core algorithm, raft_server.cxx
  2. fstream based log storage
  3. asio based timer implementation
@@ -31,6 +35,7 @@ The project only contains the following stuff,
  5. buffered logger implementation
 
 ### Why these are sufficient?
+
 1. Core is core, it's all about Raft itself. Developers could just copy the headers and this file to make Raft work.
 2. For log storage, please make your platform specific implementation, we may or may not add sophisticated implementation as it's not hard for everyone to implement one, the existing fs_log_store is for demo only as it's lack of many stuff including flush file data and meta data into physical device, always keeping three files in correct state (sort of transactional), etc.
 3. Asio is sufficient, you may think about having messge queues for incoming and outgoing requests, but that's unnecessary, as long as you are using async io, no matter it's IOCP, kqueue or epoll, there is already a queue behind the scene, asio would be good enough as a production based code.
@@ -38,6 +43,7 @@ The project only contains the following stuff,
 You are not able to get an exe file to do something meaningful by building the project, actually, you will get archive file instead (or lib file on Windows), however, you can build the test project and see how to use it and how it would work
 
 You most likely should start with test_everything_together.cxx, under test/src folder, as that contains a use case of
+
 - what need to be implemented to leverage the core algorithm
 - how to use the core algorithm
 - how to send logs to cluster
