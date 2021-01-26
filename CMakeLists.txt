@@ -13,6 +13,11 @@ add_definitions(-DASIO_HAS_STD_CHRONO)
 # ASIO requires threads
 find_package(Threads REQUIRED)
 
+# Cross compiling
+if (CMAKE_SYSTEM_NAME MATCHES Darwin|FreeBSD)
+add_definitions(-DOS_FREEBSD)
+endif ()
+
 # Builds default to RELEASE
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE CACHE STRING
@@ -26,6 +31,9 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS_DEBUG "-g")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
+
+# Enable compile commands for clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # If no installation prefix is given manually, install locally.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
