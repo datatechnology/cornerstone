@@ -2,7 +2,7 @@
 
 ![Build Status](https://github.com/datatechnology/cornerstone/workflows/Build%20and%20test/badge.svg)
 
-A very lightweight but complete Raft Consensus C++ implementation, the original implementation was published by [Andy Chen] (<https://github.com/andy-yx-chen>), as he agrees,  we re-organize his source code, and republish under the same license.
+A very lightweight but complete Raft Consensus C++ implementation, the [original implementation](https://github.com/andy-yx-chen/cornerstone) was published by [Andy Chen](https://github.com/andy-yx-chen), as he agrees,  we re-organize his source code, and republish under the same license.
 
 To respect Andy Chen's work, we keep using **cornerstone** as the project's name and we will start iterating based on his work.
 
