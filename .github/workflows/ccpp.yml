@@ -16,4 +16,17 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: run tests
-      run: make -f Makefile.lx testr
+      run: |
+        ulimit -c unlimited
+        sudo make -f Makefile.lx testr
+        
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: test builds and logs
+        path: |
+          tests
+          !tests/**/*.o
+          !tests/src/**
+          !tests/sources
+          !tests/Makefile.*
