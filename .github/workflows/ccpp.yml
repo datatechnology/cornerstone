@@ -16,4 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: run tests
-      run: make -f Makefile.lx testr
+      run: |
+        ulimit -c unlimited
+        sudo make -f Makefile.lx testr
+        sudo ls 
