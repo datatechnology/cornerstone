@@ -359,7 +359,12 @@ ptr<std::vector<ptr<log_entry>>> fs_log_store::log_entries(ulong start, ulong en
             data_file_.seekg(data_start);
             bufptr entry_buf(buffer::alloc(data_sz));
             data_file_ >> *entry_buf;
-            (*results)[i] = log_entry::deserialize(*entry_buf);
+            if (results->size() > static_cast<size_t>(i)) {
+                (*results)[i] = log_entry::deserialize(*entry_buf);
+            } else {
+                results->emplace_back(std::move(log_entry::deserialize(*entry_buf)));
+            }
+            
             data_start = data_end;
         }
     }
