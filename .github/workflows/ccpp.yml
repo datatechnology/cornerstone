@@ -19,7 +19,7 @@ jobs:
       run: |
         ulimit -c unlimited
         sudo make -f Makefile.lx testr
-        sudo ls 
+        cat /proc/sys/kernel/core_pattern
         
     - name: Archive production artifacts
       uses: actions/upload-artifact@v2
