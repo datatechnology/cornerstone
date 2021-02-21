@@ -19,7 +19,6 @@ jobs:
       run: |
         ulimit -c unlimited
         sudo make -f Makefile.lx testr
-        tail -200 /var/log/apport.log
         
     - name: Archive production artifacts
       uses: actions/upload-artifact@v2
