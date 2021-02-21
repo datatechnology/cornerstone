@@ -20,3 +20,14 @@ jobs:
         ulimit -c unlimited
         sudo make -f Makefile.lx testr
         sudo ls 
+        
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: test builds and logs
+        path: |
+          tests
+          !tests/**/*.o
+          !tests/src/**
+          !tests/sources
+          !tests/Makefile.*
