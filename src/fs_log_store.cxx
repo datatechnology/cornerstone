@@ -89,7 +89,7 @@ ulong log_store_buffer::fill(ulong start, ulong end, std::vector<ptr<log_entry>>
     }
 
     int offset = static_cast<int>(start - start_idx_);
-    if (offset > 0) {
+    if (offset >= 0) {
         for (int i = 0; i < static_cast<int>(end - start); ++i) {
             result.emplace_back(buf_[offset + i]);
         }
@@ -359,7 +359,12 @@ ptr<std::vector<ptr<log_entry>>> fs_log_store::log_entries(ulong start, ulong en
             data_file_.seekg(data_start);
             bufptr entry_buf(buffer::alloc(data_sz));
             data_file_ >> *entry_buf;
-            (*results)[i] = log_entry::deserialize(*entry_buf);
+            if (results->size() > static_cast<size_t>(i)) {
+                (*results)[i] = log_entry::deserialize(*entry_buf);
+            } else {
+                results->push_back(log_entry::deserialize(*entry_buf));
+            }
+            
             data_start = data_end;
         }
     }
