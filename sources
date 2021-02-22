@@ -18,8 +18,7 @@ SOURCES=src\raft_server.cxx\
 asio: asio/asio/include/asio.hpp
 
 asio/asio/include/asio.hpp:
-	@git clone https://github.com/chriskohlhoff/asio.git
-	@git -C ./asio checkout asio-1-14-0
+	@git submodule update --init
 
 tests:	asio
 	@cd tests && nmake -f Makefile.win all && testr.exe && cd ..

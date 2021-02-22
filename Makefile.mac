@@ -7,8 +7,7 @@ VPATH=./src/
 	$(CC) $(CFLAGS) -c -o $@ $<
 OBJS=buffer.o asio_service.o cluster_config.o peer.o snapshot.o srv_config.o fs_log_store.o raft_server.o snapshot_sync_req.o
 asio/asio/include/asio.hpp:
-	@if [ ! -d "asio/asio" ]; then git clone https://github.com/chriskohlhoff/asio.git ; fi;
-	@git -C ./asio checkout asio-1-14-0
+	@git submodule update --init
 
 testr:	asio/asio/include/asio.hpp
 	@cd tests && make -f Makefile.mac testr && ./debug/testr
