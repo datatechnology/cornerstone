@@ -20,6 +20,8 @@ SOURCES=\
 	src\test_scheduler.cxx\
 	src\test_logger.cxx\
 	..\src\raft_server.cxx\
+	..\src\raft_server_req_handlers.cxx\
+	..\src\raft_server_resp_handlers.cxx\
 	..\src\peer.cxx\
 	src\test_impls.cxx\
 	src\test_log_store.cxx\

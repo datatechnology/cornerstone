@@ -6,6 +6,8 @@ USE_UNICODE=NO
 DEBUG=YES
 cflags=$(cflags) /D_WIN32_WINNT=0x0501
 SOURCES=src\raft_server.cxx\
+	src\raft_server_req_handlers.cxx\
+	src\raft_server_resp_handlers.cxx\
 	src\asio_service.cxx\
 	src\buffer.cxx\
 	src\cluster_config.cxx\
