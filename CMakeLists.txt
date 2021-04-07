@@ -49,6 +49,8 @@ set(SOURCE_FILES
         src/fs_log_store.cxx
         src/peer.cxx
         src/raft_server.cxx
+        src/raft_server_req_handlers.cxx
+        src/raft_server_resp_handlers.cxx
         src/snapshot.cxx
         src/snapshot_sync_req.cxx
         src/srv_config.cxx)

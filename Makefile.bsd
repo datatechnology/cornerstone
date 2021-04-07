@@ -7,7 +7,7 @@ LFLAGS=-lpthread
 .SUFFIXES	: .o .cxx
 .cxx.o	:
 	$(CC) $(CFLAGS) -c $(.IMPSRC)
-OBJS=buffer.o asio_service.o cluster_config.o peer.o snapshot.o srv_config.o fs_log_store.o raft_server.o snapshot_sync_req.o
+OBJS=buffer.o asio_service.o cluster_config.o peer.o snapshot.o srv_config.o fs_log_store.o raft_server.o raft_server_req_handlers.o raft_server_resp_handlers.o snapshot_sync_req.o
 asio/asio/include/asio.hpp:
 	@git submodule update --init
 
