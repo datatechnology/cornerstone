@@ -108,7 +108,7 @@ void raft_server::handle_append_entries_resp(resp_msg& resp) {
             // fast move for the peer to catch up
             p->set_next_log_idx(resp.get_next_idx());
         }
-        else {
+        else if (p->get_next_log_idx() > 0) {
             p->set_next_log_idx(p->get_next_log_idx() - 1);
         }
     }
