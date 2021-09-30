@@ -15,7 +15,7 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
-    - name: run tests
+    - name: run build and test
       run: |
         sudo apt-get install -y gdb
         ulimit -c unlimited -S
@@ -26,15 +26,13 @@ jobs:
         cmake --build .
         ./testr
         COREFILE=$(find . -maxdepth 3 -name "core*" | head -n 1)
-        if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" tests/debug/testr -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
+        if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" testr -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
         
     - name: Archive production artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: test builds and logs
+        name: builds and logs
         path: |
-          tests
-          !tests/**/*.o
-          !tests/src/**
-          !tests/sources
-          !tests/Makefile.*
+          build
+          !build/**/*.o
+          !build/Makefile*
