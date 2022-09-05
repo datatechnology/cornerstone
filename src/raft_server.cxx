@@ -79,10 +79,10 @@ raft_server::raft_server(context* ctx)
       commit_cv_(),
       stopping_lock_(),
       ready_to_stop_cv_(),
-      resp_handler_([this](ptr<resp_msg>& resp, const ptr<rpc_exception>& e) mutable {
+      resp_handler_([this](ptr<resp_msg>& resp, const ptr<rpc_exception>& e) {
           this->handle_peer_resp(resp, e);
       }),
-      ex_resp_handler_([this](ptr<resp_msg>& resp, const ptr<rpc_exception>& e) mutable {
+      ex_resp_handler_([this](ptr<resp_msg>& resp, const ptr<rpc_exception>& e) {
           this->handle_ext_resp(resp, e);
       }), 
       last_snapshot_(ctx->state_machine_->last_snapshot()),
