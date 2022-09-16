@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-#include "../../include/cornerstone.hxx"
 #include <cassert>
+#include "cornerstone.hxx"
 
 using namespace cornerstone;
 
-ulong long_val(int val) {
+ulong long_val(int val)
+{
     ulong base = std::numeric_limits<uint>::max();
     return base + (ulong)val;
 }
 
-void test_serialization() {
+void test_serialization()
+{
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    auto rnd = [distribution, engine]() mutable -> int32_t {
-        return distribution(engine);
-    };
+    auto rnd = [distribution, engine]() mutable -> int32_t { return distribution(engine); };
 
     ptr<srv_config> srv_conf(cs_new<srv_config>(rnd(), sstrfmt("server %d").fmt(rnd())));
     bufptr srv_conf_buf(srv_conf->serialize());
@@ -52,7 +52,9 @@ void test_serialization() {
     assert(conf->get_prev_log_idx() == conf1->get_prev_log_idx());
     assert(conf->get_servers().size() == conf1->get_servers().size());
     for (cluster_config::srv_itor it = conf->get_servers().begin(), it1 = conf1->get_servers().begin();
-        it != conf->get_servers().end() && it1 != conf1->get_servers().end(); ++it, ++it1) {
+         it != conf->get_servers().end() && it1 != conf1->get_servers().end();
+         ++it, ++it1)
+    {
         assert((*it)->get_id() == (*it1)->get_id());
         assert((*it)->get_endpoint() == (*it1)->get_endpoint());
     }
@@ -66,8 +68,11 @@ void test_serialization() {
     assert(snp->get_last_config()->get_servers().size() == snp1->get_last_config()->get_servers().size());
     assert(snp->get_last_config()->get_log_idx() == snp1->get_last_config()->get_log_idx());
     assert(snp->get_last_config()->get_prev_log_idx() == snp1->get_last_config()->get_prev_log_idx());
-    for (cluster_config::srv_itor it = snp->get_last_config()->get_servers().begin(), it1 = snp1->get_last_config()->get_servers().begin();
-        it != snp->get_last_config()->get_servers().end() && it1 != snp1->get_last_config()->get_servers().end(); ++it, ++it1) {
+    for (cluster_config::srv_itor it = snp->get_last_config()->get_servers().begin(),
+                                  it1 = snp1->get_last_config()->get_servers().begin();
+         it != snp->get_last_config()->get_servers().end() && it1 != snp1->get_last_config()->get_servers().end();
+         ++it, ++it1)
+    {
         assert((*it)->get_id() == (*it1)->get_id());
         assert((*it)->get_endpoint() == (*it1)->get_endpoint());
     }
@@ -75,7 +80,8 @@ void test_serialization() {
     // test snapshot sync request serialization
     bool done = rnd() % 2 == 0;
     bufptr rnd_buf(buffer::alloc(rnd()));
-    for (size_t i = 0; i < rnd_buf->size(); ++i) {
+    for (size_t i = 0; i < rnd_buf->size(); ++i)
+    {
         rnd_buf->put((byte)(rnd()));
     }
 
@@ -96,7 +102,8 @@ void test_serialization() {
     buffer& buf1 = sync_req1->get_data();
     assert(buf1.pos() == 0);
     assert(copy_of_rnd->size() == buf1.size());
-    for (size_t i = 0; i < buf1.size(); ++i) {
+    for (size_t i = 0; i < buf1.size(); ++i)
+    {
         byte* d = copy_of_rnd->data();
         byte* d1 = buf1.data();
         assert(*(d + i) == *(d1 + i));
@@ -119,7 +126,8 @@ void test_serialization() {
 
     // test log entry serialization and deserialization
     bufptr data = buffer::alloc(24 + rnd() % 100);
-    for (size_t i = 0; i < data->size(); ++i) {
+    for (size_t i = 0; i < data->size(); ++i)
+    {
         data->put(static_cast<byte>(rnd() % 255));
     }
 
@@ -129,10 +137,10 @@ void test_serialization() {
     assert(entry->get_term() == entry1->get_term());
     assert(entry->get_val_type() == entry1->get_val_type());
     assert(entry->get_buf().size() == entry1->get_buf().size());
-    for (size_t i = 0; i < entry->get_buf().size(); ++i) {
+    for (size_t i = 0; i < entry->get_buf().size(); ++i)
+    {
         byte b1 = entry->get_buf().get_byte();
         byte b2 = entry1->get_buf().get_byte();
         assert(b1 == b2);
     }
 }
-

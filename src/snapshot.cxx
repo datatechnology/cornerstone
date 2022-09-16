@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-#include "../include/cornerstone.hxx"
+#include "snapshot.hxx"
 
 using namespace cornerstone;
 
-ptr<snapshot> snapshot::deserialize(buffer& buf) {
+ptr<snapshot> snapshot::deserialize(buffer& buf)
+{
     ulong last_log_idx = buf.get_ulong();
     ulong last_log_term = buf.get_ulong();
     ulong size = buf.get_ulong();
@@ -26,7 +27,8 @@ ptr<snapshot> snapshot::deserialize(buffer& buf) {
     return cs_new<snapshot>(last_log_idx, last_log_term, conf, size);
 }
 
-bufptr snapshot::serialize() {
+bufptr snapshot::serialize()
+{
     bufptr conf_buf = last_config_->serialize();
     bufptr buf = buffer::alloc(conf_buf->size() + sz_ulong * 3);
     buf->put(last_log_idx_);

@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-#include "../../include/cornerstone.hxx"
-#include <iostream>
 #include <cassert>
+#include <iostream>
+#include "cornerstone.hxx"
 
 using namespace cornerstone;
 int _timer_fired_counter = 0;
-void test_scheduler() {
+void test_scheduler()
+{
     asio_service svc;
-    timer_task<void>::executor handler = (std::function<void()>)([]() -> void {
-        _timer_fired_counter++;
-    });
+    timer_task<void>::executor handler = (std::function<void()>)([]() -> void { _timer_fired_counter++; });
     ptr<delayed_task> task(cs_new<timer_task<void>>(handler));
     std::cout << "scheduled to wait for 200ms" << std::endl;
     svc.schedule(task, 200);

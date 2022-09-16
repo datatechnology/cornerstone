@@ -17,30 +17,41 @@
 #ifndef _SRV_CONFIG_HXX_
 #define _SRV_CONFIG_HXX_
 
-namespace cornerstone {
-    class srv_config {
-    public:
-        srv_config(int32 id, const std::string& endpoint)
-            : id_(id), endpoint_(endpoint) {}
+#include <string>
+#include "basic_types.hxx"
+#include "buffer.hxx"
+#include "pp_util.hxx"
 
-        __nocopy__(srv_config)
+namespace cornerstone
+{
+class srv_config
+{
+public:
+    srv_config(int32 id, const std::string& endpoint) : id_(id), endpoint_(endpoint)
+    {
+    }
 
-    public:
-        static ptr<srv_config> deserialize(buffer& buf);
+    __nocopy__(srv_config);
 
-        int32 get_id() const {
-            return id_;
-        }
+public:
+    static ptr<srv_config> deserialize(buffer& buf);
 
-        const std::string& get_endpoint() const {
-            return endpoint_;
-        }
+    int32 get_id() const
+    {
+        return id_;
+    }
 
-        bufptr serialize() const;
-    private:
-        int32 id_;
-        std::string endpoint_;
-    };
-}
+    const std::string& get_endpoint() const
+    {
+        return endpoint_;
+    }
+
+    bufptr serialize() const;
+
+private:
+    int32 id_;
+    std::string endpoint_;
+};
+} // namespace cornerstone
 
 #endif

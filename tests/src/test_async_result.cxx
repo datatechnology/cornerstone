@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include <utility>
+#include <cassert>
+#include <chrono>
 #include <iostream>
 #include <thread>
-#include <chrono>
-#include <cassert>
-#include "../../include/cornerstone.hxx"
+#include <utility>
+#include "cornerstone.hxx"
 
 using namespace cornerstone;
 
@@ -27,34 +27,41 @@ typedef async_result<int>::handler_type int_handler;
 
 ptr<std::exception> no_except;
 
-ptr<async_result<int>> create_and_set_async_result(int time_to_sleep, int value, ptr<std::exception>& err) {
+ptr<async_result<int>> create_and_set_async_result(int time_to_sleep, int value, ptr<std::exception>& err)
+{
     ptr<async_result<int>> result(cs_new<async_result<int>>());
-    if (time_to_sleep <= 0) {
+    if (time_to_sleep <= 0)
+    {
         result->set_result(value, err);
         return result;
     }
 
-    std::thread th([=]() -> void {
-        std::this_thread::sleep_for(std::chrono::milliseconds(time_to_sleep));
-        ptr<std::exception> ex(err);
-        result->set_result(value, ex);
-    });
+    std::thread th(
+        [=]() -> void
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(time_to_sleep));
+            ptr<std::exception> ex(err);
+            result->set_result(value, ex);
+        });
 
     th.detach();
     return result;
 }
 
-void test_async_result() {
+void test_async_result()
+{
     std::cout << "test with sync set" << std::endl;
     {
         ptr<async_result<int>> p(create_and_set_async_result(0, 123, no_except));
         assert(123 == p->get());
-        bool handler_called = false;	
-        p->when_ready([&handler_called](int val, const ptr<std::exception>& e) -> void {
-            assert(123 == val);
-            assert(e == nullptr);
-            handler_called = true;
-	    });
+        bool handler_called = false;
+        p->when_ready(
+            [&handler_called](int val, const ptr<std::exception>& e) -> void
+            {
+                assert(123 == val);
+                assert(e == nullptr);
+                handler_called = true;
+            });
         assert(handler_called);
     }
 
@@ -62,10 +69,12 @@ void test_async_result() {
     {
         ptr<async_result<int>> presult(create_and_set_async_result(200, 496, no_except));
         bool handler_called = false;
-        presult->when_ready([&handler_called](int val, const ptr<std::exception>& e) -> void {
-            assert(496 == val);
-            assert(e == nullptr);
-            handler_called = true;
+        presult->when_ready(
+            [&handler_called](int val, const ptr<std::exception>& e) -> void
+            {
+                assert(496 == val);
+                assert(e == nullptr);
+                handler_called = true;
             });
         assert(496 == presult->get());
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -83,16 +92,20 @@ void test_async_result() {
         ptr<std::exception> ex = cs_new<std::bad_exception>();
         ptr<async_result<int>> presult(create_and_set_async_result(200, 496, ex));
         bool handler_called = false;
-        presult->when_ready([&handler_called, ex](int, const ptr<std::exception>& e) -> void {
-            assert(ex == e);
-            handler_called = true;
+        presult->when_ready(
+            [&handler_called, ex](int, const ptr<std::exception>& e) -> void
+            {
+                assert(ex == e);
+                handler_called = true;
             });
 
         bool ex_handled = false;
-        try {
+        try
+        {
             presult->get();
         }
-        catch (const ptr<std::exception>& err) {
+        catch (const ptr<std::exception>& err)
+        {
             (void)err;
             assert(ex == err);
             ex_handled = true;

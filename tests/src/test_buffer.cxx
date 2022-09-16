@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#include "../../include/cornerstone.hxx"
-#include <sstream>
 #include <cassert>
+#include <sstream>
+#include "cornerstone.hxx"
 
 using namespace cornerstone;
 
 static void do_test(bufptr& buf);
 
-void test_buffer() {
-    
+void test_buffer()
+{
     bufptr buf = buffer::alloc(1024);
     assert(buf->size() == 1024);
     do_test(buf);
@@ -37,17 +37,17 @@ void test_buffer() {
     do_test(buf);
 }
 
-static void do_test(bufptr& buf) {
+static void do_test(bufptr& buf)
+{
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    auto rnd = [distribution, engine]() mutable -> int32_t {
-        return distribution(engine);
-    };
+    auto rnd = [distribution, engine]() mutable -> int32_t { return distribution(engine); };
 
     // store int32 values into buffer
     std::vector<int32> vals;
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 100; ++i)
+    {
         int32 val = rnd();
         vals.push_back(val);
         buf->put(val);
@@ -73,13 +73,15 @@ static void do_test(bufptr& buf) {
     bufptr buf3(buffer::alloc(sz_int * 100));
     buf->get(buf3);
     buf->pos(0);
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 100; ++i)
+    {
         int32 val = buf->get_int();
         assert(val == vals[i]);
     }
 
     buf3->pos(0);
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 100; ++i)
+    {
         int32 val = buf3->get_int();
         assert(val == vals[i]);
     }
@@ -90,7 +92,8 @@ static void do_test(bufptr& buf) {
     assert(b1 == buf->get_byte());
     assert(strcmp("another string", buf->get_str()) == 0);
     assert(strcmp("another string", buf2->get_str()) == 0);
-    assert(buf->pos() == (100 * sz_int + 2 * sz_byte + sz_ulong + strlen("a string") + 1 + strlen("another string") + 1));
+    assert(
+        buf->pos() == (100 * sz_int + 2 * sz_byte + sz_ulong + strlen("a string") + 1 + strlen("another string") + 1));
 
     std::stringstream stream;
     long_val = std::numeric_limits<uint>::max();

@@ -17,28 +17,32 @@
 #ifndef _STRING_FORMATTER_HXX_
 #define _STRING_FORMATTER_HXX_
 
-namespace cornerstone {
-    template<int N>
-    class strfmt {
-    public:
-        strfmt(const char* fmt)
-            : fmt_(fmt) {
-        }
+#include <cstdio>
+#include "pp_util.hxx"
 
-        template<typename ... TArgs>
-        const char* fmt(TArgs... args) {
-            ::snprintf(buf_, N, fmt_, args...);
-            return buf_;
-        }
+namespace cornerstone
+{
+template <int N>
+class strfmt
+{
+public:
+    strfmt(const char* fmt) : fmt_(fmt)
+    {
+    }
 
-    __nocopy__(strfmt)
-    private:
-        char buf_[N];
-        const char* fmt_;
-    };
+    template <typename... TArgs>
+    const char* fmt(TArgs... args)
+    {
+        ::snprintf(buf_, N, fmt_, args...);
+        return buf_;
+    }
 
-    typedef strfmt<100> sstrfmt;
-    typedef strfmt<200> lstrfmt;
-}
+    __nocopy__(strfmt) private : char buf_[N];
+    const char* fmt_;
+};
+
+typedef strfmt<100> sstrfmt;
+typedef strfmt<200> lstrfmt;
+} // namespace cornerstone
 
 #endif //_STRING_FORMATTER_HXX_

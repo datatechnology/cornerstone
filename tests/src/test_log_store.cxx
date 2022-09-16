@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "../../include/cornerstone.hxx"
 #include <cassert>
+#include "cornerstone.hxx"
 
 using namespace cornerstone;
 
@@ -29,12 +29,14 @@ using namespace cornerstone;
 
 #include <Windows.h>
 
-int mkdir(const char* path, int mode) {
+int mkdir(const char* path, int mode)
+{
     (void)mode;
     return 1 == ::CreateDirectoryA(path, NULL) ? 0 : -1;
 }
 
-int rmdir(const char* path) {
+int rmdir(const char* path)
+{
     return 1 == ::RemoveDirectoryA(path) ? 0 : -1;
 }
 #undef min
@@ -47,12 +49,13 @@ int rmdir(const char* path) {
 #define LOG_DATA_FILE_BAK "/store.dat.bak"
 #define LOG_START_INDEX_FILE_BAK "/store.sti.bak"
 
-#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
-void cleanup(const std::string& folder) {
+void cleanup(const std::string& folder)
+{
     std::remove((folder + LOG_INDEX_FILE).c_str());
     std::remove((folder + LOG_DATA_FILE).c_str());
     std::remove((folder + LOG_START_INDEX_FILE).c_str());
@@ -61,13 +64,16 @@ void cleanup(const std::string& folder) {
     std::remove((folder + LOG_START_INDEX_FILE_BAK).c_str());
 }
 
-void cleanup() {
+void cleanup()
+{
     cleanup(".");
 }
 
-static ptr<log_entry> rnd_entry(std::function<int32()>& rnd) {
+static ptr<log_entry> rnd_entry(std::function<int32()>& rnd)
+{
     bufptr buf = buffer::alloc(rnd() % 100 + 8);
-    for (size_t i = 0; i < buf->size(); ++i) {
+    for (size_t i = 0; i < buf->size(); ++i)
+    {
         buf->put(static_cast<byte>(rnd() % 256));
     }
 
@@ -76,12 +82,14 @@ static ptr<log_entry> rnd_entry(std::function<int32()>& rnd) {
     return cs_new<log_entry>(rnd(), std::move(buf), t);
 }
 
-static bool entry_equals(log_entry& entry1, log_entry& entry2) {
-    bool result = entry1.get_term() == entry2.get_term() 
-                    && entry1.get_val_type() == entry2.get_val_type()
-                    && entry1.get_buf().size() == entry2.get_buf().size();
-    if (result) {
-        for (size_t i = 0; i < entry1.get_buf().size(); ++i) {
+static bool entry_equals(log_entry& entry1, log_entry& entry2)
+{
+    bool result = entry1.get_term() == entry2.get_term() && entry1.get_val_type() == entry2.get_val_type() &&
+                  entry1.get_buf().size() == entry2.get_buf().size();
+    if (result)
+    {
+        for (size_t i = 0; i < entry1.get_buf().size(); ++i)
+        {
             byte b1 = entry1.get_buf().data()[i];
             byte b2 = entry2.get_buf().data()[i];
             result = b1 == b2;
@@ -91,13 +99,12 @@ static bool entry_equals(log_entry& entry1, log_entry& entry2) {
     return result;
 }
 
-void test_log_store() {
+void test_log_store()
+{
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
-        return distribution(engine);
-    };
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t { return distribution(engine); };
 
     cleanup();
     fs_log_store store(".", 100);
@@ -109,7 +116,8 @@ void test_log_store() {
     assert(store.entry_at(1) == nilptr);
 
     std::vector<ptr<log_entry>> logs;
-    for (int i = 0; i < 100 + rnd() % 100; ++i) {
+    for (int i = 0; i < 100 + rnd() % 100; ++i)
+    {
         ptr<log_entry> item(rnd_entry(rnd));
         store.append(item);
         logs.push_back(item);
@@ -121,7 +129,8 @@ void test_log_store() {
     assert(entry_equals(*last, *(logs[logs.size() - 1])));
 
     // random item test
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; ++i)
+    {
         size_t idx = (size_t)(rnd() % logs.size());
         ptr<log_entry> item(store.entry_at(idx + 1));
         assert(entry_equals(*item, *(logs[idx])));
@@ -131,10 +140,11 @@ void test_log_store() {
     size_t rnd_idx = (size_t)rnd() % logs.size();
     size_t rnd_sz = (size_t)rnd() % (logs.size() - rnd_idx);
     ptr<std::vector<ptr<log_entry>>> entries = store.log_entries(rnd_idx + 1, rnd_idx + rnd_sz + 1);
-    for (size_t i = rnd_idx; i < rnd_idx + rnd_sz; ++i) {
+    for (size_t i = rnd_idx; i < rnd_idx + rnd_sz; ++i)
+    {
         assert(entry_equals(*(logs[i]), *(*entries)[i - rnd_idx]));
     }
-    
+
     store.close();
     fs_log_store store1(".", 100);
     // overall test
@@ -143,7 +153,8 @@ void test_log_store() {
     assert(entry_equals(*last1, *(logs[logs.size() - 1])));
 
     // random item test
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; ++i)
+    {
         size_t idx = (size_t)rnd() % logs.size();
         ptr<log_entry> item(store1.entry_at(idx + 1));
         assert(entry_equals(*item, *(logs[idx])));
@@ -153,7 +164,8 @@ void test_log_store() {
     rnd_idx = (size_t)rnd() % logs.size();
     rnd_sz = (size_t)rnd() % (logs.size() - rnd_idx);
     ptr<std::vector<ptr<log_entry>>> entries1(store1.log_entries(rnd_idx + 1, rnd_idx + rnd_sz + 1));
-    for (size_t i = rnd_idx; i < rnd_idx + rnd_sz; ++i) {
+    for (size_t i = rnd_idx; i < rnd_idx + rnd_sz; ++i)
+    {
         assert(entry_equals(*(logs[i]), *(*entries1)[i - rnd_idx]));
     }
 
@@ -172,19 +184,19 @@ void test_log_store() {
     cleanup();
 }
 
-void test_log_store_buffer() {
+void test_log_store_buffer()
+{
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
-        return distribution(engine);
-    };
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t { return distribution(engine); };
 
     cleanup();
     fs_log_store store(".", 1000);
     int logs_count = rnd() % 1000 + 1500;
     std::vector<ptr<log_entry>> entries;
-    for (int i = 0; i < logs_count; ++i) {
+    for (int i = 0; i < logs_count; ++i)
+    {
         ptr<log_entry> entry(rnd_entry(rnd));
         store.append(entry);
         entries.push_back(entry);
@@ -193,7 +205,8 @@ void test_log_store_buffer() {
     int start = rnd() % (logs_count - 1000);
     int end = logs_count - 500;
     ptr<std::vector<ptr<log_entry>>> results = store.log_entries((ulong)start + 1, (ulong)end + 1);
-    for (int i = start; i < end; ++i) {
+    for (int i = start; i < end; ++i)
+    {
         entry_equals(*entries[i], *(*results)[i - start]);
     }
 
@@ -201,13 +214,12 @@ void test_log_store_buffer() {
     cleanup();
 }
 
-void test_log_store_pack() {
+void test_log_store_pack()
+{
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
-        return distribution(engine);
-    };
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t { return distribution(engine); };
 
     cleanup();
     cleanup("tmp");
@@ -215,7 +227,8 @@ void test_log_store_pack() {
     fs_log_store store(".", 1000);
     fs_log_store store1("tmp", 1000);
     int logs_cnt = rnd() % 1000 + 1000;
-    for (int i = 0; i < logs_cnt; ++i) {
+    for (int i = 0; i < logs_cnt; ++i)
+    {
         ptr<log_entry> entry = rnd_entry(rnd);
         store.append(entry);
         entry = rnd_entry(rnd);
@@ -223,14 +236,16 @@ void test_log_store_pack() {
     }
 
     int logs_copied = 0;
-    while (logs_copied < logs_cnt) {
+    while (logs_copied < logs_cnt)
+    {
         bufptr pack = store.pack(logs_copied + 1, 100);
         store1.apply_pack(logs_copied + 1, *pack);
         logs_copied = std::min(logs_copied + 100, logs_cnt);
     }
 
     assert(store1.next_slot() == store.next_slot());
-    for (int i = 1; i <= logs_cnt; ++i) {
+    for (int i = 1; i <= logs_cnt; ++i)
+    {
         ptr<log_entry> entry1 = store.entry_at((ulong)i);
         ptr<log_entry> entry2 = store1.entry_at((ulong)i);
         assert(entry_equals(*entry1, *entry2));
@@ -243,19 +258,19 @@ void test_log_store_pack() {
     rmdir("tmp");
 }
 
-void test_log_store_compact_all() {
+void test_log_store_compact_all()
+{
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
-        return distribution(engine);
-    };
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t { return distribution(engine); };
 
     cleanup();
     fs_log_store store(".", 1000);
     int cnt = rnd() % 1000 + 100;
     std::vector<ptr<log_entry>> entries;
-    for (int i = 0; i < cnt; ++i) {
+    for (int i = 0; i < cnt; ++i)
+    {
         ptr<log_entry> entry(rnd_entry(rnd));
         store.append(entry);
         entries.push_back(entry);
@@ -270,7 +285,8 @@ void test_log_store_compact_all() {
     assert(entries.size() == (size_t)store.next_slot() - 1);
 
     cnt = rnd() % 100 + 10;
-    for (int i = 0; i < cnt; ++i) {
+    for (int i = 0; i < cnt; ++i)
+    {
         ptr<log_entry> entry(rnd_entry(rnd));
         entries.push_back(entry);
         store.append(entry);
@@ -286,19 +302,19 @@ void test_log_store_compact_all() {
     cleanup();
 }
 
-void test_log_store_compact_random() {
+void test_log_store_compact_random()
+{
     std::random_device rd;
     std::default_random_engine engine(rd());
     std::uniform_int_distribution<int32> distribution(1, 10000);
-    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t {
-        return distribution(engine);
-    };
+    std::function<int32()> rnd = [distribution, engine]() mutable -> int32_t { return distribution(engine); };
 
     cleanup();
     fs_log_store store(".", 1000);
     int cnt = rnd() % 1000 + 100;
     std::vector<ptr<log_entry>> entries;
-    for (int i = 0; i < cnt; ++i) {
+    for (int i = 0; i < cnt; ++i)
+    {
         ptr<log_entry> entry(rnd_entry(rnd));
         store.append(entry);
         entries.push_back(entry);
@@ -311,7 +327,8 @@ void test_log_store_compact_random() {
     assert(store.start_index() == (idx_to_compact + 1));
     assert(store.next_slot() == (entries.size() + 1));
 
-    for (size_t i = 0; i < store.next_slot() - idx_to_compact - 1; ++i) {
+    for (size_t i = 0; i < store.next_slot() - idx_to_compact - 1; ++i)
+    {
         ptr<log_entry> entry = store.entry_at(store.start_index() + i);
         assert(entry_equals(*entry, *entries[i + (size_t)idx_to_compact]));
     }
@@ -322,19 +339,22 @@ void test_log_store_compact_random() {
     entries[(size_t)rnd_idx - 1] = entry;
     entries.erase(entries.begin() + (size_t)rnd_idx, entries.end());
 
-    for (size_t i = 0; i < store.next_slot() - idx_to_compact - 1; ++i) {
+    for (size_t i = 0; i < store.next_slot() - idx_to_compact - 1; ++i)
+    {
         ptr<log_entry> entry = store.entry_at(store.start_index() + i);
         assert(entry_equals(*entry, *entries[i + (size_t)idx_to_compact]));
     }
 
     cnt = rnd() % 100 + 10;
-    for (int i = 0; i < cnt; ++i) {
+    for (int i = 0; i < cnt; ++i)
+    {
         ptr<log_entry> entry = rnd_entry(rnd);
         entries.push_back(entry);
         store.append(entry);
     }
 
-    for (size_t i = 0; i < store.next_slot() - idx_to_compact - 1; ++i) {
+    for (size_t i = 0; i < store.next_slot() - idx_to_compact - 1; ++i)
+    {
         ptr<log_entry> entry = store.entry_at(store.start_index() + i);
         assert(entry_equals(*entry, *entries[i + (size_t)idx_to_compact]));
     }
