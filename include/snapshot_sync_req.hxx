@@ -17,33 +17,51 @@
 #ifndef _SNAPSHOT_SYNC_REQ_HXX_
 #define _SNAPSHOT_SYNC_REQ_HXX_
 
-namespace cornerstone {
-    class snapshot_sync_req {
-    public:
-        snapshot_sync_req(const ptr<snapshot>& s, ulong offset, bufptr&& buf, bool done)
-            : snapshot_(s), offset_(offset), data_(std::move(buf)), done_(done) {}
+#include "snapshot.hxx"
 
-    __nocopy__(snapshot_sync_req)
-    public:
-        static ptr<snapshot_sync_req> deserialize(buffer& buf);
+namespace cornerstone
+{
+class snapshot_sync_req
+{
+public:
+    snapshot_sync_req(const ptr<snapshot>& s, ulong offset, bufptr&& buf, bool done)
+        : snapshot_(s), offset_(offset), data_(std::move(buf)), done_(done)
+    {
+    }
 
-        snapshot& get_snapshot() const {
-            return *snapshot_;
-        }
+    __nocopy__(snapshot_sync_req);
 
-        ulong get_offset() const { return offset_; }
+public:
+    static ptr<snapshot_sync_req> deserialize(buffer& buf);
 
-        buffer& get_data() const { return *data_; }
+    snapshot& get_snapshot() const
+    {
+        return *snapshot_;
+    }
 
-        bool is_done() const { return done_; }
+    ulong get_offset() const
+    {
+        return offset_;
+    }
 
-        bufptr serialize();
-    private:
-        ptr<snapshot> snapshot_;
-        ulong offset_;
-        bufptr data_;
-        bool done_;
-    };
-}
+    buffer& get_data() const
+    {
+        return *data_;
+    }
+
+    bool is_done() const
+    {
+        return done_;
+    }
+
+    bufptr serialize();
+
+private:
+    ptr<snapshot> snapshot_;
+    ulong offset_;
+    bufptr data_;
+    bool done_;
+};
+} // namespace cornerstone
 
 #endif //_SNAPSHOT_SYNC_REQ_HXX_

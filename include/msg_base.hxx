@@ -16,38 +16,52 @@
 
 #ifndef _MSG_BASE_HXX_
 #define _MSG_BASE_HXX_
-namespace cornerstone {
 
-    class msg_base {
-    public:
-        msg_base(ulong term, msg_type type, int src, int dst)
-            : term_(term), type_(type), src_(src), dst_(dst) {}
+#include "basic_types.hxx"
+#include "msg_type.hxx"
+#include "pp_util.hxx"
 
-        virtual ~msg_base() {}
+namespace cornerstone
+{
 
-        ulong get_term() const {
-            return this->term_;
-        }
+class msg_base
+{
+public:
+    msg_base(ulong term, msg_type type, int src, int dst) : term_(term), type_(type), src_(src), dst_(dst)
+    {
+    }
 
-        msg_type get_type() const {
-            return this->type_;
-        }
+    virtual ~msg_base()
+    {
+    }
 
-        int32 get_src() const {
-            return this->src_;
-        }
+    ulong get_term() const
+    {
+        return this->term_;
+    }
 
-        int32 get_dst() const {
-            return this->dst_;
-        }
+    msg_type get_type() const
+    {
+        return this->type_;
+    }
 
-    __nocopy__(msg_base)
+    int32 get_src() const
+    {
+        return this->src_;
+    }
 
-    private:
-        ulong term_;
-        msg_type type_;
-        int32 src_;
-        int32 dst_;
-    };
-}
+    int32 get_dst() const
+    {
+        return this->dst_;
+    }
+
+    __nocopy__(msg_base);
+
+private:
+    ulong term_;
+    msg_type type_;
+    int32 src_;
+    int32 dst_;
+};
+} // namespace cornerstone
 #endif //_MSG_BASE_HXX_

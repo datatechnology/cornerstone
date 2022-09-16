@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "../../include/cornerstone.hxx"
 #include <cassert>
+#include "cornerstone.hxx"
 
 using namespace cornerstone;
 
@@ -26,19 +26,25 @@ int __ptr_test_derived_destroyed(0);
 int __ptr_test_circular_destroyed(0);
 int __ptr_test_safe_destroyed(0);
 
-class Base {
+class Base
+{
 public:
-    Base(int val) : value_(val) {}
+    Base(int val) : value_(val)
+    {
+    }
 
-    virtual ~Base() {
+    virtual ~Base()
+    {
         __ptr_test_base_destroyed += 1;
     }
 
-    virtual void func() {
+    virtual void func()
+    {
         __ptr_test_base_calls += 1;
     }
 
-    int get_value() const {
+    int get_value() const
+    {
         return value_;
     }
 
@@ -46,42 +52,55 @@ private:
     int value_;
 };
 
-class Derived : public Base {
+class Derived : public Base
+{
 public:
-    Derived(int val) : Base(val + 10) {}
+    Derived(int val) : Base(val + 10)
+    {
+    }
 
-    virtual ~Derived() {
+    virtual ~Derived()
+    {
         __ptr_test_derived_destroyed += 1;
     }
 
-    virtual void func() {
+    virtual void func()
+    {
         __ptr_test_derived_calls += 1;
     }
 };
 
-class PtrSafe : public std::enable_shared_from_this<PtrSafe> {
+class PtrSafe : public std::enable_shared_from_this<PtrSafe>
+{
 public:
-    PtrSafe() {}
+    PtrSafe()
+    {
+    }
 
 public:
-    ~PtrSafe() {
+    ~PtrSafe()
+    {
         __ptr_test_safe_destroyed += 1;
     }
 
-    ptr<PtrSafe> get_this() {
+    ptr<PtrSafe> get_this()
+    {
         return shared_from_this();
     }
 };
 
 class Circular2;
 
-class Circular1 {
+class Circular1
+{
 public:
-    ~Circular1() {
+    ~Circular1()
+    {
         __ptr_test_circular_destroyed += 1;
     }
 
-    void set_c2(ptr<Circular2>& p) {
+    void set_c2(ptr<Circular2>& p)
+    {
         c2_ = p;
     }
 
@@ -89,11 +108,15 @@ private:
     ptr<Circular2> c2_;
 };
 
-class Circular2 {
+class Circular2
+{
 public:
-    Circular2(ptr<Circular1>& c1) : c1_(c1) {}
+    Circular2(ptr<Circular1>& c1) : c1_(c1)
+    {
+    }
 
-    ~Circular2() {
+    ~Circular2()
+    {
         __ptr_test_circular_destroyed += 1;
     }
 
@@ -101,36 +124,44 @@ private:
     wptr<Circular1> c1_;
 };
 
-class Base1 {
+class Base1
+{
 public:
     virtual int func1() = 0;
 };
 
-class Base2 {
+class Base2
+{
 public:
     virtual int func2() = 0;
     virtual int func3() = 0;
 };
 
-class Impl : public Base1, public Base2 {
+class Impl : public Base1, public Base2
+{
 public:
-    virtual ~Impl() {
+    virtual ~Impl()
+    {
     }
 
-    virtual int func1() {
+    virtual int func1()
+    {
         return 1;
     }
 
-    virtual int func2() {
+    virtual int func2()
+    {
         return 2;
     }
 
-    virtual int func3() {
+    virtual int func3()
+    {
         return 3;
     }
 };
 
-void test_ptr() {
+void test_ptr()
+{
     {
         wptr<Circular1> c1ref;
         {

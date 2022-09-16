@@ -17,20 +17,24 @@
 #ifndef _CS_EVENTS_HXX_
 #define _CS_EVENTS_HXX_
 
+#include "pp_util.hxx"
+
 namespace cornerstone
 {
-    enum class raft_event
-    {
-        become_leader = 1,
-        become_follower,
-        logs_catch_up
-    };
+enum class raft_event
+{
+    become_leader = 1,
+    become_follower,
+    logs_catch_up
+};
 
-    class raft_event_listener {
-        __interface_body__(raft_event_listener)
-    public:
-        virtual void on_event(raft_event event) = 0;
-    };
-}
+class raft_event_listener
+{
+    __interface_body__(raft_event_listener);
+
+public:
+    virtual void on_event(raft_event event) = 0;
+};
+} // namespace cornerstone
 
 #endif //_CS_EVENTS_HXX_

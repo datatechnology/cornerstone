@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-#include "../../include/cornerstone.hxx"
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include "cornerstone.hxx"
 
 using namespace cornerstone;
 
-void test_logger() {
+void test_logger()
+{
     std::string text[4];
     text[0] = "line1";
     text[1] = "line2";
@@ -38,7 +39,8 @@ void test_logger() {
     }
 
     std::ifstream log1("log1.log");
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         std::string line;
         std::getline(log1, line);
         std::string log_text = line.substr(line.length() - 5);
@@ -57,7 +59,8 @@ void test_logger() {
     }
 
     std::ifstream log2("log2.log");
-    for (int i = 2; i < 4; ++i) {
+    for (int i = 2; i < 4; ++i)
+    {
         std::string line;
         std::getline(log2, line);
         std::string log_text = line.substr(line.length() - 5);

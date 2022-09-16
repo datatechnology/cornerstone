@@ -17,6 +17,13 @@
 #ifndef _FS_LOG_STORE_HXX_
 #define _FS_LOG_STORE_HXX_
 
+#include <vector>
+#include <shared_mutex>
+#include <mutex>
+#include <fstream>
+#include "log_entry.hxx"
+#include "log_store.hxx"
+
 namespace cornerstone {
     class log_store_buffer {
     public:

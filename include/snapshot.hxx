@@ -17,41 +17,52 @@
 #ifndef _SNAPSHOT_HXX_
 #define _SNAPSHOT_HXX_
 
-namespace cornerstone {
-    class snapshot {
-    public:
-        snapshot(ulong last_log_idx, ulong last_log_term, const ptr<cluster_config>& last_config, ulong size = 0)
-            : last_log_idx_(last_log_idx), last_log_term_(last_log_term), size_(size), last_config_(last_config){}
+#include "buffer.hxx"
+#include "cluster_config.hxx"
 
-        __nocopy__(snapshot)
+namespace cornerstone
+{
+class snapshot
+{
+public:
+    snapshot(ulong last_log_idx, ulong last_log_term, const ptr<cluster_config>& last_config, ulong size = 0)
+        : last_log_idx_(last_log_idx), last_log_term_(last_log_term), size_(size), last_config_(last_config)
+    {
+    }
 
-    public:
-        ulong get_last_log_idx() const {
-            return last_log_idx_;
-        }
+    __nocopy__(snapshot);
 
-        ulong get_last_log_term() const {
-            return last_log_term_;
-        }
+public:
+    ulong get_last_log_idx() const
+    {
+        return last_log_idx_;
+    }
 
-        ulong size() const {
-            return size_;
-        }
+    ulong get_last_log_term() const
+    {
+        return last_log_term_;
+    }
 
-        const ptr<cluster_config>& get_last_config() const {
-            return last_config_;
-        }
+    ulong size() const
+    {
+        return size_;
+    }
 
-        static ptr<snapshot> deserialize(buffer& buf);
+    const ptr<cluster_config>& get_last_config() const
+    {
+        return last_config_;
+    }
 
-        bufptr serialize();
+    static ptr<snapshot> deserialize(buffer& buf);
 
-    private:
-        ulong last_log_idx_;
-        ulong last_log_term_;
-        ulong size_;
-        ptr<cluster_config> last_config_;
-    };
-}
+    bufptr serialize();
+
+private:
+    ulong last_log_idx_;
+    ulong last_log_term_;
+    ulong size_;
+    ptr<cluster_config> last_config_;
+};
+} // namespace cornerstone
 
 #endif

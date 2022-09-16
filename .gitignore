@@ -21,3 +21,4 @@ tests/store*
 *.bat
 *.cmd
 *.sh
+.cache

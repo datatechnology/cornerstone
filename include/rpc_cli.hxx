@@ -16,16 +16,24 @@
 
 #ifndef _RPC_CLI_HXX_
 #define _RPC_CLI_HXX_
+#include <exception>
+#include "async.hxx"
+#include "req_msg.hxx"
+#include "resp_msg.hxx"
+#include "rpc_exception.hxx"
 
-namespace cornerstone {
-    using rpc_result = async_result<ptr<resp_msg>, ptr<rpc_exception>>;
-    using rpc_handler = rpc_result::handler_type ;
+namespace cornerstone
+{
+using rpc_result = async_result<ptr<resp_msg>, ptr<rpc_exception>>;
+using rpc_handler = rpc_result::handler_type;
 
-    class rpc_client {
-    __interface_body__(rpc_client)
-    public:
-        virtual void send(ptr<req_msg>& req, rpc_handler& when_done) = 0;
-    };
-}
+class rpc_client
+{
+    __interface_body__(rpc_client);
+
+public:
+    virtual void send(ptr<req_msg>& req, rpc_handler& when_done) = 0;
+};
+} // namespace cornerstone
 
 #endif //_RPC_CLI_HXX_

@@ -17,31 +17,41 @@
 #ifndef _RESP_MSG_HXX_
 #define _RESP_MSG_HXX_
 
-namespace cornerstone {
-    class resp_msg : public msg_base {
-    public:
-        resp_msg(ulong term, msg_type type, int32 src, int32 dst, ulong next_idx = 0L, bool accepted = false)
-            : msg_base(term, type, src, dst), next_idx_(next_idx), accepted_(accepted) {}
+#include "msg_base.hxx"
 
-        __nocopy__(resp_msg)
+namespace cornerstone
+{
+class resp_msg : public msg_base
+{
+public:
+    resp_msg(ulong term, msg_type type, int32 src, int32 dst, ulong next_idx = 0L, bool accepted = false)
+        : msg_base(term, type, src, dst), next_idx_(next_idx), accepted_(accepted)
+    {
+    }
 
-    public:
-        ulong get_next_idx() const {
-            return next_idx_;
-        }
+    __nocopy__(resp_msg);
 
-        bool get_accepted() const {
-            return accepted_;
-        }
+public:
+    ulong get_next_idx() const
+    {
+        return next_idx_;
+    }
 
-        void accept(ulong next_idx) {
-            next_idx_ = next_idx;
-            accepted_ = true;
-        }
-    private:
-        ulong next_idx_;
-        bool accepted_;
-    };
-}
+    bool get_accepted() const
+    {
+        return accepted_;
+    }
+
+    void accept(ulong next_idx)
+    {
+        next_idx_ = next_idx;
+        accepted_ = true;
+    }
+
+private:
+    ulong next_idx_;
+    bool accepted_;
+};
+} // namespace cornerstone
 
 #endif //_RESP_MSG_HXX_

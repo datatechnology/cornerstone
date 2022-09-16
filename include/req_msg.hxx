@@ -17,41 +17,59 @@
 #ifndef _REG_MSG_HXX_
 #define _REG_MSG_HXX_
 
-namespace cornerstone {
-    class req_msg : public msg_base {
-    public:
-        req_msg(ulong term, msg_type type, int32 src, int32 dst, ulong last_log_term, ulong last_log_idx, ulong commit_idx)
-            : msg_base(term, type, src, dst), last_log_term_(last_log_term), last_log_idx_(last_log_idx), commit_idx_(commit_idx), log_entries_() {
-        }
-        
-        virtual ~req_msg() __override__ {
-        }
+#include <vector>
+#include "basic_types.hxx"
+#include "log_entry.hxx"
+#include "msg_base.hxx"
+#include "pp_util.hxx"
 
-    __nocopy__(req_msg)
+namespace cornerstone
+{
+class req_msg : public msg_base
+{
+public:
+    req_msg(ulong term, msg_type type, int32 src, int32 dst, ulong last_log_term, ulong last_log_idx, ulong commit_idx)
+        : msg_base(term, type, src, dst),
+          last_log_term_(last_log_term),
+          last_log_idx_(last_log_idx),
+          commit_idx_(commit_idx),
+          log_entries_()
+    {
+    }
 
-    public:
-        ulong get_last_log_idx() const {
-            return last_log_idx_;
-        }
+    virtual ~req_msg() __override__
+    {
+    }
 
-        ulong get_last_log_term() const {
-            return last_log_term_;
-        }
+    __nocopy__(req_msg);
 
-        ulong get_commit_idx() const {
-            return commit_idx_;
-        }
+public:
+    ulong get_last_log_idx() const
+    {
+        return last_log_idx_;
+    }
 
-        std::vector<ptr<log_entry>>& log_entries() {
-            return log_entries_;
-        }
+    ulong get_last_log_term() const
+    {
+        return last_log_term_;
+    }
 
-    private:
-        ulong last_log_term_;
-        ulong last_log_idx_;
-        ulong commit_idx_;
-        std::vector<ptr<log_entry>> log_entries_;
-    };
-}
+    ulong get_commit_idx() const
+    {
+        return commit_idx_;
+    }
+
+    std::vector<ptr<log_entry>>& log_entries()
+    {
+        return log_entries_;
+    }
+
+private:
+    ulong last_log_term_;
+    ulong last_log_idx_;
+    ulong commit_idx_;
+    std::vector<ptr<log_entry>> log_entries_;
+};
+} // namespace cornerstone
 
 #endif //_REG_MSG_HXX_
