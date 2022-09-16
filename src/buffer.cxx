@@ -15,6 +15,7 @@
  */
 
 #include "buffer.hxx"
+#include <cstring>
 #include <iostream>
 
 #define __is_big_block(p) (0x80000000 & *((uint*)(p)))

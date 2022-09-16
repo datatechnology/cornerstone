@@ -15,6 +15,7 @@
  */
 
 #include "snapshot_sync_req.hxx"
+#include <cstring>
 
 using namespace cornerstone;
 

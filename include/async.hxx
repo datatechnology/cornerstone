@@ -17,6 +17,7 @@
 #ifndef _ASYNC_HXX_
 #define _ASYNC_HXX_
 
+#include <condition_variable>
 #include <exception>
 #include <functional>
 #include <mutex>
