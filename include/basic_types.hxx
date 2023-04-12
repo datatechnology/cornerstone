@@ -19,6 +19,8 @@
 
 #include <chrono>
 #include <cstdint>
+#include <stdexcept>
+#include <vector>
 typedef uint64_t ulong;
 typedef void* any_ptr;
 typedef unsigned char byte;
