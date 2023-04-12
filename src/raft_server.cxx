@@ -192,7 +192,6 @@ void raft_server::handle_election_timeout()
             }
 
             ctx_->state_mgr_->system_exit(-1);
-            ::exit(0);
             return;
         }
 
@@ -214,7 +213,6 @@ void raft_server::handle_election_timeout()
     {
         l_->err("A leader should never encounter election timeout, illegal application state, stop the application");
         ctx_->state_mgr_->system_exit(-1);
-        ::exit(-1);
         return;
     }
 
@@ -575,7 +573,6 @@ void raft_server::snapshot_and_compact(ulong committed_idx)
                     l_->err("No snapshot could be found while no configuration cannot be found in current committed "
                             "logs, this is a system error, exiting");
                     ctx_->state_mgr_->system_exit(-1);
-                    ::exit(-1);
                     return;
                 }
 
@@ -585,7 +582,6 @@ void raft_server::snapshot_and_compact(ulong committed_idx)
             {
                 l_->err("BUG!!! stop the system, there must be a configuration at index one");
                 ctx_->state_mgr_->system_exit(-1);
-                ::exit(-1);
                 return;
             }
 
@@ -670,7 +666,6 @@ ptr<req_msg> raft_server::create_append_entries_req(peer& p)
         l_->err(
             sstrfmt("Peer's lastLogIndex is too large %llu v.s. %llu, server exits").fmt(last_log_idx, cur_nxt_idx));
         ctx_->state_mgr_->system_exit(-1);
-        ::exit(-1);
         return ptr<req_msg>();
     }
 
@@ -816,7 +811,6 @@ ptr<req_msg> raft_server::create_sync_snapshot_req(peer& p, ulong last_log_idx, 
                             "%d, snapshot doesn't contais lastLogIndex: %d")
                         .fmt(p.get_id(), snp == nilptr ? 1 : 0, last_log_idx > snp->get_last_log_idx() ? 1 : 0));
             ctx_->state_mgr_->system_exit(-1);
-            ::exit(-1);
             return ptr<req_msg>();
         }
 
@@ -825,7 +819,6 @@ ptr<req_msg> raft_server::create_sync_snapshot_req(peer& p, ulong last_log_idx, 
             l_->err("invalid snapshot, this usually means a bug from state machine implementation, stop the system to "
                     "prevent further errors");
             ctx_->state_mgr_->system_exit(-1);
-            ::exit(-1);
             return ptr<req_msg>();
         }
 
@@ -846,7 +839,6 @@ ptr<req_msg> raft_server::create_sync_snapshot_req(peer& p, ulong last_log_idx, 
                 "only %d bytes could be read from snapshot while %d bytes are expected, must be something wrong, exit.")
                 .fmt(sz_rd, data->size()));
         ctx_->state_mgr_->system_exit(-1);
-        ::exit(-1);
         return ptr<req_msg>();
     }
 
@@ -882,7 +874,6 @@ ulong raft_server::term_for_log(ulong log_idx)
         l_->err(sstrfmt("bad log_idx %llu for retrieving the term value, kill the system to protect the system")
                     .fmt(log_idx));
         ctx_->state_mgr_->system_exit(-1);
-        ::exit(-1);
     }
 
     return last_snapshot->get_last_log_term();
@@ -953,7 +944,6 @@ void raft_server::commit_in_bg()
             l_->err(lstrfmt("background committing thread encounter err %s, exiting to protect the system")
                         .fmt(err.what()));
             ctx_->state_mgr_->system_exit(-1);
-            ::exit(-1);
         }
     }
 }

@@ -18,6 +18,8 @@
 #define _LOG_STORE_HXX_
 
 #include "log_entry.hxx"
+#include <vector>
+
 namespace cornerstone
 {
 class log_store
