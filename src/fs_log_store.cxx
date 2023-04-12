@@ -428,7 +428,7 @@ ptr<std::vector<ptr<log_entry>>> fs_log_store::log_entries(ulong start, ulong en
             }
             else
             {
-                results->emplace_back(std::move(log_entry::deserialize(*entry_buf)));
+                results->emplace_back(log_entry::deserialize(*entry_buf));
             }
 
             data_start = data_end;
