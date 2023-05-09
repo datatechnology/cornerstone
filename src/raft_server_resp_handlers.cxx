@@ -240,13 +240,6 @@ void raft_server::handle_voting_resp(resp_msg& resp)
 
 void raft_server::handle_prevote_resp(resp_msg& resp)
 {
-    if (resp.get_term() != state_->get_term())
-    {
-        l_->info(sstrfmt("Received an outdated prevote response at term %llu v.s. current term %llu")
-                     .fmt(resp.get_term(), state_->get_term()));
-        return;
-    }
-
     if (!prevote_state_)
     {
         l_->info(sstrfmt("Prevote has completed, term received: %llu, current term %llu")
